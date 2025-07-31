@@ -1,0 +1,115 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Data files
+*.csv
+*.parquet
+*.db
+*.sqlite
+*.h5
+*.pkl
+*.pickle
+
+# Model files
+*.pth
+*.pt
+*.onnx
+*.pb
+*.h5
+*.keras
+*.safetensors
+
+# Logs
+*.log
+logs/
+*.out
+*.err
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+/data/
+/artifacts/
+/backtesting/results/
+/paper_trading/results/
+/training_data/
+/real_market_data/
+/massive_news/
+/market_data/
+/news_data/
+/outputs/
+/cache/
+/tmp/
+
+# Exclude pre-trained models in artifacts
+!/artifacts/.gitkeep
+
+# Secrets
+secrets/
+credentials/
+*.key
+*.pem
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Documentation
+docs/_build/
+site/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+~*

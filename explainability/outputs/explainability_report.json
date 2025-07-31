@@ -1,0 +1,116 @@
+{
+  "timestamp": "2025-07-30T03:16:01.180386",
+  "config": {
+    "model_path": "/home/ryan/trading/mismatch-trading/training/checkpoints/best_model.pt",
+    "data_path": "/home/ryan/trading/mismatch-trading/training_data/synthetic_training_data.parquet",
+    "output_dir": "/home/ryan/trading/mismatch-trading/explainability/outputs",
+    "n_samples_shap": 100,
+    "top_features": 20,
+    "figure_width": 12,
+    "figure_height": 8,
+    "save_plots": true
+  },
+  "data_summary": {
+    "n_samples": 1000,
+    "n_features": 12,
+    "date_range": "0 to 999"
+  },
+  "feature_importance": {
+    "importance_scores": [
+      {
+        "feature": "sentiment_score",
+        "target_correlation": 0.08469485834512375,
+        "prediction_correlation": 0.08418216354261904,
+        "combined_importance": 0.08443851094387139
+      },
+      {
+        "feature": "bb_upper",
+        "target_correlation": 0.0331683388243036,
+        "prediction_correlation": 0.051213717222703285,
+        "combined_importance": 0.04219102802350344
+      },
+      {
+        "feature": "hour",
+        "target_correlation": 0.03919391011557722,
+        "prediction_correlation": 0.036843877888877566,
+        "combined_importance": 0.038018894002227396
+      },
+      {
+        "feature": "contradiction_encoded",
+        "target_correlation": 0.0449319542927934,
+        "prediction_correlation": 0.027626270766019437,
+        "combined_importance": 0.03627911252940642
+      },
+      {
+        "feature": "sentiment_volume",
+        "target_correlation": 0.03504737250155674,
+        "prediction_correlation": 0.02472065349469704,
+        "combined_importance": 0.029884012998126888
+      },
+      {
+        "feature": "rsi",
+        "target_correlation": 0.036868690412031474,
+        "prediction_correlation": 0.008814170298153177,
+        "combined_importance": 0.022841430355092326
+      },
+      {
+        "feature": "bb_lower",
+        "target_correlation": 0.022240162801196475,
+        "prediction_correlation": 0.00799390671884618,
+        "combined_importance": 0.015117034760021329
+      },
+      {
+        "feature": "volatility",
+        "target_correlation": 0.017374366138798145,
+        "prediction_correlation": 0.0018791934183382821,
+        "combined_importance": 0.009626779778568214
+      },
+      {
+        "feature": "day_of_week",
+        "target_correlation": 0.003018165729126214,
+        "prediction_correlation": 0.013899428649891712,
+        "combined_importance": 0.008458797189508963
+      },
+      {
+        "feature": "macd",
+        "target_correlation": 0.002773064112621534,
+        "prediction_correlation": 0.008684707999764958,
+        "combined_importance": 0.005728886056193246
+      },
+      {
+        "feature": "volume_ratio",
+        "target_correlation": 0.010238647044158404,
+        "prediction_correlation": 0.00014429778023814833,
+        "combined_importance": 0.005191472412198276
+      },
+      {
+        "feature": "returns",
+        "target_correlation": 0.0029667875585324766,
+        "prediction_correlation": 0.0007522357887612281,
+        "combined_importance": 0.0018595116736468524
+      }
+    ],
+    "top_features": [
+      "sentiment_score",
+      "bb_upper",
+      "hour",
+      "contradiction_encoded",
+      "sentiment_volume",
+      "rsi",
+      "bb_lower",
+      "volatility",
+      "day_of_week",
+      "macd",
+      "volume_ratio",
+      "returns"
+    ]
+  },
+  "contradiction_analysis": {
+    "contradiction_counts": {
+      "paradox": 257,
+      "none": 257,
+      "underhype": 249,
+      "overhype": 237
+    },
+    "performance_by_type": {
+      
