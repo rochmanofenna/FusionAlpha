@@ -27,7 +27,7 @@ def prepare_dataset(csv_path, output_npz_path, scaler_path, target_mode="normali
     scaler = StandardScaler()
     tech_scaled = scaler.fit_transform(df[technical_cols])
     joblib.dump(scaler, scaler_path)
-    print("✅ Technical features normalized.")
+    print("Technical features normalized.")
 
     # Prepare arrays
     finbert_embeddings = df[finbert_cols].values.astype(np.float32)
@@ -51,7 +51,7 @@ def prepare_dataset(csv_path, output_npz_path, scaler_path, target_mode="normali
              news_sentiment_scores=sentiment_scores,
              target_returns=target_returns)
     
-    print(f"✅ Dataset saved to {output_npz_path}")
+    print(f"Dataset saved to {output_npz_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -22,7 +22,7 @@ def load_data(npz_path):
     return predictions, target_returns, contradiction_tags
 
 def filter_data(predictions, target_returns, contradiction_tags, filter_type):
-    # Only include "underhype" and "overhype" if filter_type is "both"
+    # Filter by contradiction type
     tags = np.array(contradiction_tags)
     if filter_type == "both":
         mask = (tags == "underhype") | (tags == "overhype")
@@ -57,7 +57,7 @@ def simulate_trading(predictions, target_returns, contradiction_tags, threshold,
         trade_executed = False
         actual_return = target_returns[i]
         
-        # For long trade: tag == "underhype" and pred_noisy > threshold.
+        # Long trade: underhype and positive prediction
         if contradiction_tags[i] == "underhype" and pred_noisy > threshold:
             action = "LONG"
             trade_counts["underhype"]["count"] += 1
@@ -69,11 +69,11 @@ def simulate_trading(predictions, target_returns, contradiction_tags, threshold,
             # Determine win: if effective_return > 0.
             if effective_return > 0:
                 trade_counts["underhype"]["wins"] += 1
-        # For short trade: tag == "overhype" and pred_noisy < -threshold.
+        # Short trade: overhype and negative prediction
         elif contradiction_tags[i] == "overhype" and pred_noisy < -threshold:
             action = "SHORT"
             trade_counts["overhype"]["count"] += 1
-            # For short trades, effective return = -actual_return - slippage.
+            # Short return calculation with slippage
             effective_return = -actual_return - 0.002
             effective_return = np.clip(effective_return, -0.03, 0.03)
             trade_executed = True
@@ -104,7 +104,7 @@ def simulate_trading(predictions, target_returns, contradiction_tags, threshold,
     return np.array(equity_curve), trade_details, trade_counts, daily_log_returns
 
 def compute_cagr(initial_capital, final_capital, num_days):
-    years = num_days / 252.0  # Assume 252 trading days per year.
+    years = num_days / 252.0  # Trading days per year
     return (final_capital / initial_capital) ** (1/years) - 1
 
 def compute_max_drawdown(equity_curve):
@@ -740,7 +740,7 @@ def filter_and_save_by_tag(tag):
     
     filtered = {key: data[key][indices] for key in data}
     np.savez(output_path, **filtered)
-    print(f"✅ Saved {tag} dataset to {output_path}")
+    print(f"Saved {tag} dataset to {output_path}")
 
 if __name__ == "__main__":
     os.makedirs("training_data", exist_ok=True)
@@ -2246,7 +2246,7 @@ def prepare_dataset(csv_path, output_npz_path, scaler_path, target_mode="normali
     scaler = StandardScaler()
     tech_scaled = scaler.fit_transform(df[technical_cols])
     joblib.dump(scaler, scaler_path)
-    print("✅ Technical features normalized.")
+    print("Technical features normalized.")
 
     # Prepare arrays
     finbert_embeddings = df[finbert_cols].values.astype(np.float32)
@@ -2270,7 +2270,7 @@ def prepare_dataset(csv_path, output_npz_path, scaler_path, target_mode="normali
              news_sentiment_scores=sentiment_scores,
              target_returns=target_returns)
     
-    print(f"✅ Dataset saved to {output_npz_path}")
+    print(f"Dataset saved to {output_npz_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -2713,11 +2713,11 @@ for epoch in range(num_epochs):
 
         # Safety checks
         if torch.isnan(batch_tech).any() or torch.isinf(batch_tech).any():
-            print("🚨 NaN or Inf in tech features. Skipping batch.")
+            print("NaN or Inf in tech features. Skipping batch.")
             continue
 
         if torch.isnan(batch_finbert).any() or torch.isinf(batch_finbert).any():
-            print("🚨 NaN or Inf in FinBERT embeddings. Skipping batch.")
+            print("NaN or Inf in FinBERT embeddings. Skipping batch.")
             continue
 
         optimizer.zero_grad()
@@ -2734,7 +2734,7 @@ for epoch in range(num_epochs):
 
         # Sanity check
         if torch.isnan(loss) or torch.isinf(loss):
-            print("🚨 NaN/Inf loss detected. Skipping batch.")
+            print("NaN/Inf loss detected. Skipping batch.")
             continue
 
         loss.backward()
@@ -2744,11 +2744,11 @@ for epoch in range(num_epochs):
 
     avg_loss = epoch_loss / num_samples
     loss_history.append(avg_loss)
-    print(f"✅ Epoch {epoch+1}/{num_epochs}, Loss: {avg_loss:.6f}")
+    print(f"Epoch {epoch+1}/{num_epochs}, Loss: {avg_loss:.6f}")
 
 # Save model
 torch.save(model.state_dict(), "./training_data/fusion_net_contradiction_weights.pth")
-print("✅ Training complete. Model saved to ./training_data/fusion_net_contradiction_weights.pth")
+print("Training complete. Model saved to ./training_data/fusion_net_contradiction_weights.pth")
 
 # Optional: plot loss curve
 try:
@@ -2758,7 +2758,7 @@ try:
     plt.ylabel("Loss")
     plt.title("Training Loss Curve")
     plt.savefig("./training_data/loss_curve.png")
-    print("📈 Loss curve saved to training_data/loss_curve.png")
+    print("Loss curve saved to training_data/loss_curve.png")
 except ImportError:
     print("matplotlib not installed. Skipping loss plot.")#!/usr/bin/env python3
 import argparse

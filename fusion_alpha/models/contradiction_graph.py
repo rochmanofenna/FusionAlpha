@@ -570,9 +570,9 @@ if __name__ == "__main__":
     with torch.no_grad():
         graph_embeddings, pushout_symbols = gnn(batch_data)
     
-    print(f"✅ Graph embeddings shape: {graph_embeddings.shape}")
-    print(f"✅ Push-out symbols shape: {pushout_symbols.shape}")
-    print(f"✅ Sample push-out symbol: {pushout_symbols[0][:5]}")
+    print(f"Graph embeddings shape: {graph_embeddings.shape}")
+    print(f"Push-out symbols shape: {pushout_symbols.shape}")
+    print(f"Sample push-out symbol: {pushout_symbols[0][:5]}")
     
     # Test individual graph building
     builder = ContradictionGraphBuilder()
@@ -582,12 +582,12 @@ if __name__ == "__main__":
         "test_contradiction"
     )
     
-    print(f"✅ Detected contradiction type: {node.contradiction_type}")
-    print(f"✅ Activation strength: {node.activation_strength:.4f}")
+    print(f"Detected contradiction type: {node.contradiction_type}")
+    print(f"Activation strength: {node.activation_strength:.4f}")
     
     # Build and validate graph
     pyg_graph = builder.build_pyg_graph()
     validation_metrics = gnn.get_connectivity_validation(pyg_graph)
-    print(f"✅ Graph validation metrics: {validation_metrics}")
+    print(f"Graph validation metrics: {validation_metrics}")
     
-    print("🚀 Contradiction Graph Implementation Complete!")
+    print("Contradiction Graph Implementation Complete!")

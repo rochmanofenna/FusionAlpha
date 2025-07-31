@@ -33,7 +33,7 @@ try:
     import yfinance as yf
     YFINANCE_AVAILABLE = True
 except ImportError:
-    print("⚠️ yfinance not available. Install with: pip install yfinance")
+    print("yfinance not available. Install with: pip install yfinance")
     YFINANCE_AVAILABLE = False
 
 try:
@@ -43,7 +43,7 @@ try:
     from alpha_vantage.cryptocurrencies import CryptoCurrencies
     ALPHA_VANTAGE_AVAILABLE = True
 except ImportError:
-    print("⚠️ alpha_vantage not available. Install with: pip install alpha-vantage")
+    print("alpha_vantage not available. Install with: pip install alpha-vantage")
     ALPHA_VANTAGE_AVAILABLE = False
 
 # Setup logging
@@ -137,7 +137,7 @@ class FreeMarketDataCollector:
                 self.av_timeseries = TimeSeries(key=self.config.alpha_vantage_key, output_format='pandas')
                 self.av_fundamentals = FundamentalData(key=self.config.alpha_vantage_key, output_format='pandas')
                 self.av_crypto = CryptoCurrencies(key=self.config.alpha_vantage_key, output_format='pandas')
-                logger.info("✅ Alpha Vantage clients initialized")
+                logger.info("Alpha Vantage clients initialized")
             except Exception as e:
                 logger.error(f"Alpha Vantage setup failed: {e}")
                 self.av_timeseries = None
@@ -613,16 +613,16 @@ def main():
     print(f"\n1. Testing Yahoo Finance OHLCV data...")
     start_time = time.time()
     ohlcv_data = collector.get_yahoo_finance_data(test_symbols[:3], period="5d", interval="1h")
-    print(f"   ✅ Collected OHLCV for {len(ohlcv_data)} symbols in {time.time() - start_time:.2f}s")
+    print(f"   Collected OHLCV for {len(ohlcv_data)} symbols in {time.time() - start_time:.2f}s")
     
     for symbol, df in ohlcv_data.items():
-        print(f"   📈 {symbol}: {len(df)} bars, latest close: ${df['Close'].iloc[-1]:.2f}")
+        print(f"   {symbol}: {len(df)} bars, latest close: ${df['Close'].iloc[-1]:.2f}")
     
     # Test real-time quotes
     print(f"\n2. Testing real-time quotes...")
     start_time = time.time()
     quotes = collector.get_real_time_quotes(test_symbols[:3])
-    print(f"   ✅ Collected quotes for {len(quotes)} symbols in {time.time() - start_time:.2f}s")
+    print(f"   Collected quotes for {len(quotes)} symbols in {time.time() - start_time:.2f}s")
     
     for symbol, quote in quotes.items():
         print(f"   💹 {symbol}: ${quote.price:.2f} ({quote.change_percent:+.2f}%)")
@@ -631,12 +631,12 @@ def main():
     print(f"\n3. Testing fundamental data...")
     fundamentals = collector.get_fundamentals('AAPL')
     if fundamentals:
-        print(f"   ✅ AAPL fundamentals: PE={fundamentals.get('pe_ratio'):.2f}, Beta={fundamentals.get('beta'):.2f}")
+        print(f"   AAPL fundamentals: PE={fundamentals.get('pe_ratio'):.2f}, Beta={fundamentals.get('beta'):.2f}")
     
     # Test crypto data
     print(f"\n4. Testing cryptocurrency data...")
     crypto_data = collector.get_crypto_data(['BTC', 'ETH'])
-    print(f"   ✅ Collected crypto data for {len(crypto_data)} symbols")
+    print(f"   Collected crypto data for {len(crypto_data)} symbols")
     
     # Test economic data
     print(f"\n5. Testing economic data...")
@@ -644,24 +644,24 @@ def main():
         fed_funds = collector.get_economic_data('FEDFUNDS')
         if fed_funds is not None and not fed_funds.empty:
             latest_rate = fed_funds.iloc[-1, 0]
-            print(f"   ✅ Federal Funds Rate: {latest_rate:.2f}%")
+            print(f"   Federal Funds Rate: {latest_rate:.2f}%")
         else:
-            print(f"   ⚠️ Economic data not available")
+            print(f"   Economic data not available")
     except Exception as e:
-        print(f"   ⚠️ Economic data error: {e}")
+        print(f"   Economic data error: {e}")
     
     # Test options data
     print(f"\n6. Testing options data...")
     options = collector.get_options_data('AAPL')
     if options:
         total_contracts = sum(len(data['calls']) + len(data['puts']) for data in options.values())
-        print(f"   ✅ AAPL options: {total_contracts} contracts across {len(options)} expiration dates")
+        print(f"   AAPL options: {total_contracts} contracts across {len(options)} expiration dates")
     
     # Create comprehensive dataset
     print(f"\n7. Creating comprehensive trading dataset...")
     start_time = time.time()
     dataset = collector.create_trading_dataset(['AAPL', 'MSFT'], days=7)
-    print(f"   ✅ Created dataset: {len(dataset)} rows, {len(dataset.columns)} columns in {time.time() - start_time:.2f}s")
+    print(f"   Created dataset: {len(dataset)} rows, {len(dataset.columns)} columns in {time.time() - start_time:.2f}s")
     
     if not dataset.empty:
         print(f"   📊 Sample columns: {list(dataset.columns)[:10]}...")
@@ -669,17 +669,17 @@ def main():
     
     # Cache statistics
     cache_stats = collector.get_cache_stats()
-    print(f"\n📈 Cache Statistics:")
+    print(f"\nCache Statistics:")
     print(f"   Valid entries: {cache_stats['valid_cache_entries']}")
     print(f"   Total entries: {cache_stats['total_cache_entries']}")
     
-    print(f"\n✅ Free market data collection system working successfully!")
-    print(f"🎯 Ready for integration with trading pipeline")
-    print(f"\n💡 Available data sources:")
-    print(f"   • Yahoo Finance: ✅ OHLCV, quotes, fundamentals, options")
-    print(f"   • Alpha Vantage: {'✅' if collector.av_timeseries else '⚠️'} Intraday, fundamentals")
-    print(f"   • FRED Economic: ✅ Interest rates, inflation, GDP")
-    print(f"   • Cryptocurrency: ✅ BTC, ETH, major altcoins")
+    print(f"\nFree market data collection system working successfully!")
+    print(f"Ready for integration with trading pipeline")
+    print(f"\nAvailable data sources:")
+    print(f"   • Yahoo Finance: OHLCV, quotes, fundamentals, options")
+    print(f"   • Alpha Vantage: {'Available' if collector.av_timeseries else 'Unavailable'} Intraday, fundamentals")
+    print(f"   • FRED Economic: Interest rates, inflation, GDP")
+    print(f"   • Cryptocurrency: BTC, ETH, major altcoins")
 
 if __name__ == "__main__":
     main()

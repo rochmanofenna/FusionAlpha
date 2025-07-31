@@ -77,11 +77,11 @@ for epoch in range(num_epochs):
 
         # Safety checks
         if torch.isnan(batch_tech).any() or torch.isinf(batch_tech).any():
-            print("🚨 NaN or Inf in tech features. Skipping batch.")
+            print("NaN or Inf in tech features. Skipping batch.")
             continue
 
         if torch.isnan(batch_finbert).any() or torch.isinf(batch_finbert).any():
-            print("🚨 NaN or Inf in FinBERT embeddings. Skipping batch.")
+            print("NaN or Inf in FinBERT embeddings. Skipping batch.")
             continue
 
         optimizer.zero_grad()
@@ -98,7 +98,7 @@ for epoch in range(num_epochs):
 
         # Sanity check
         if torch.isnan(loss) or torch.isinf(loss):
-            print("🚨 NaN/Inf loss detected. Skipping batch.")
+            print("NaN/Inf loss detected. Skipping batch.")
             continue
 
         loss.backward()
@@ -108,11 +108,11 @@ for epoch in range(num_epochs):
 
     avg_loss = epoch_loss / num_samples
     loss_history.append(avg_loss)
-    print(f"✅ Epoch {epoch+1}/{num_epochs}, Loss: {avg_loss:.6f}")
+    print(f"Epoch {epoch+1}/{num_epochs}, Loss: {avg_loss:.6f}")
 
 # Save model
 torch.save(model.state_dict(), "./training_data/fusion_net_contradiction_weights.pth")
-print("✅ Training complete. Model saved to ./training_data/fusion_net_contradiction_weights.pth")
+print("Training complete. Model saved to ./training_data/fusion_net_contradiction_weights.pth")
 
 # Optional: plot loss curve
 try:
@@ -122,6 +122,6 @@ try:
     plt.ylabel("Loss")
     plt.title("Training Loss Curve")
     plt.savefig("./training_data/loss_curve.png")
-    print("📈 Loss curve saved to training_data/loss_curve.png")
+    print("Loss curve saved to training_data/loss_curve.png")
 except ImportError:
     print("matplotlib not installed. Skipping loss plot.")

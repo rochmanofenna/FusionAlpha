@@ -38,7 +38,7 @@ try:
     from fusion_alpha.pipelines.end_to_end_integration import IntegratedTradingPipeline
     PIPELINE_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ Pipeline components not available: {e}")
+    print(f"Pipeline components not available: {e}")
     print("Will create standalone training loop")
     PIPELINE_AVAILABLE = False
 

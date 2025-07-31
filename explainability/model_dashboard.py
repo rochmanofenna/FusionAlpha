@@ -35,14 +35,14 @@ try:
     import shap
     SHAP_AVAILABLE = True
 except ImportError:
-    print("⚠️ SHAP not available. Install with: pip install shap")
+    print("SHAP not available. Install with: pip install shap")
     SHAP_AVAILABLE = False
 
 try:
     import streamlit as st
     STREAMLIT_AVAILABLE = True
 except ImportError:
-    print("⚠️ Streamlit not available. Install with: pip install streamlit")
+    print("Streamlit not available. Install with: pip install streamlit")
     STREAMLIT_AVAILABLE = False
 
 # Setup logging
@@ -658,11 +658,11 @@ def main():
         # Create interactive dashboard
         dashboard_path = explainer.create_interactive_dashboard()
         
-        print(f"\n✅ Explainability analysis completed!")
+        print(f"\nExplainability analysis completed!")
         print(f"📊 Analyzed {len(explainer.feature_names)} features")
-        print(f"🎯 Report generated with {len(report)} sections")
+        print(f"Report generated with {len(report)} sections")
         if dashboard_path:
-            print(f"📈 Interactive dashboard: {dashboard_path}")
+            print(f"Interactive dashboard: {dashboard_path}")
         print(f"💾 Outputs saved to: {explainer.output_dir}")
         
     except Exception as e:

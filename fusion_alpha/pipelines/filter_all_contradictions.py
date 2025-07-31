@@ -16,7 +16,7 @@ def filter_and_save_by_tag(tag):
     
     filtered = {key: data[key][indices] for key in data}
     np.savez(output_path, **filtered)
-    print(f"✅ Saved {tag} dataset to {output_path}")
+    print(f"Saved {tag} dataset to {output_path}")
 
 if __name__ == "__main__":
     os.makedirs("training_data", exist_ok=True)

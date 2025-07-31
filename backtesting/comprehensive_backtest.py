@@ -35,7 +35,7 @@ try:
     from fusion_alpha.models.real_finbert import get_finbert_processor
     COMPONENTS_AVAILABLE = True
 except ImportError:
-    print("⚠️ Some components not available, using mock implementations")
+    print("Some components not available, using mock implementations")
     COMPONENTS_AVAILABLE = False
 
 # Setup logging
@@ -765,9 +765,9 @@ def main():
         results = backtester.run_backtest()
         backtester.print_summary()
         
-        print(f"\n✅ Backtest completed successfully!")
+        print(f"\nBacktest completed successfully!")
         print(f"📊 Generated {len(backtester.trades)} trades")
-        print(f"📈 Performance data: {len(backtester.daily_returns)} periods")
+        print(f"Performance data: {len(backtester.daily_returns)} periods")
         print(f"💾 Results saved to: {backtester.output_dir}")
         
     except Exception as e:

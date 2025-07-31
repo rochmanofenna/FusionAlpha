@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 """
 FusionAlpha Quick Start Example
-
-This script shows how to use the FusionAlpha system for
-real-time contradiction detection and trading signals.
 """
 
 import sys
@@ -14,28 +11,28 @@ import torch
 import pandas as pd
 from datetime import datetime, timedelta
 
-# Import FusionAlpha components
+# Import components
 from fusion_alpha.pipelines.contradiction_engine import ContradictionEngine
 from fusion_alpha.models.finbert import RealFinBERT
 from data_collection.free_market_data import get_stock_data
 from data_collection.free_news_collector import collect_news
 
 def main():
-    """Quick start example showing the basic workflow"""
+    """Basic system workflow"""
     
     print("FusionAlpha Quick Start")
-    print("=" * 50)
+    print("=" * 40)
     
-    # 1. Setup
-    print("\n1. Setting up models...")
+    # Setup
+    print("\n1. Initializing system...")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"   Using device: {device}")
+    print(f"   Device: {device}")
     
-    # Initialize models
-    contradiction_engine = ContradictionEngine()
-    finbert = RealFinBERT()
+    # Models
+    engine = ContradictionEngine()
+    sentiment_model = RealFinBERT()
     
-    # 2. Get market data
+    # Market data
     print("\n2. Fetching market data...")
     symbol = "AAPL"
     end_date = datetime.now()
@@ -45,71 +42,63 @@ def main():
         market_data = get_stock_data(symbol, start_date, end_date)
         latest_price = market_data['Close'].iloc[-1]
         price_change = (market_data['Close'].iloc[-1] - market_data['Close'].iloc[-2]) / market_data['Close'].iloc[-2]
-        print(f"   {symbol} latest price: ${latest_price:.2f}")
-        print(f"   24h change: {price_change:.2%}")
+        print(f"   {symbol} price: ${latest_price:.2f}")
+        print(f"   Change: {price_change:.2%}")
     except Exception as e:
-        print(f"   Error fetching market data: {e}")
-        # Use dummy data for demo
+        print(f"   Error: {e}")
         price_change = -0.02
-        print("   Using dummy data for demonstration")
+        print("   Using demo data")
     
-    # 3. Get news sentiment
-    print("\n3. Analyzing news sentiment...")
+    # News analysis
+    print("\n3. Processing news...")
     try:
         news_data = collect_news(symbol, max_articles=5)
         if news_data:
-            # Get sentiment for latest news
             latest_news = news_data[0]['title'] + " " + news_data[0].get('description', '')
-            sentiment_output = finbert.get_sentiment(latest_news)
+            sentiment_output = sentiment_model.get_sentiment(latest_news)
             sentiment_score = sentiment_output['positive'] - sentiment_output['negative']
-            print(f"   Latest news sentiment: {sentiment_score:.2f}")
-            print(f"   News: {news_data[0]['title'][:80]}...")
+            print(f"   Sentiment: {sentiment_score:.2f}")
+            print(f"   News: {news_data[0]['title'][:60]}...")
         else:
-            # Use dummy sentiment for demo
             sentiment_score = 0.8
-            print("   Using dummy sentiment for demonstration")
+            print("   Using demo sentiment")
     except Exception as e:
-        print(f"   Error analyzing sentiment: {e}")
+        print(f"   Error: {e}")
         sentiment_score = 0.8
-        print("   Using dummy sentiment for demonstration")
+        print("   Using demo sentiment")
     
-    # 4. Detect contradictions
-    print("\n4. Checking for contradictions...")
+    # Signal processing
+    print("\n4. Generating signals...")
     
-    # Create dummy tensors for the demo
     dummy_embedding = torch.randn(768)
     dummy_technical = torch.randn(10)
     
-    # Run contradiction detection
-    updated_embedding, contradiction_type = contradiction_engine(
+    updated_embedding, signal_type = engine(
         dummy_embedding,
         dummy_technical,
         torch.tensor(price_change),
         torch.tensor(sentiment_score)
     )
     
-    # 5. Generate trading signal
+    # Output
     print("\n5. Trading Signal:")
-    print("=" * 50)
+    print("=" * 40)
     
-    if contradiction_type:
-        print(f"⚠️  CONTRADICTION DETECTED: {contradiction_type.upper()}")
+    if signal_type:
+        print(f"SIGNAL DETECTED: {signal_type.upper()}")
         
-        if contradiction_type == "overhype":
-            print("📉 Signal: SELL or SHORT")
-            print("   Reason: Positive sentiment but price is falling")
-            print("   Action: Market may be overreacting to positive news")
-        elif contradiction_type == "underhype":
-            print("📈 Signal: BUY or LONG")
-            print("   Reason: Negative sentiment but price is rising")
-            print("   Action: Market may be undervaluing despite bad news")
+        if signal_type == "overhype":
+            print("Action: SHORT")
+            print("Reason: Signal divergence detected")
+        elif signal_type == "underhype":
+            print("Action: LONG")
+            print("Reason: Signal convergence detected")
     else:
-        print("✅ No contradiction detected")
-        print("   Market sentiment aligns with price movement")
+        print("No signal detected")
+        print("Market conditions normal")
     
-    print("\n" + "=" * 50)
-    print("Note: This is a demonstration. Always do your own research")
-    print("before making trading decisions.")
+    print("\n" + "=" * 40)
+    print("Demo complete. Review results before trading.")
 
 if __name__ == "__main__":
     main()

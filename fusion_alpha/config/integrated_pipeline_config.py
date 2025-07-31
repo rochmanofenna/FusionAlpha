@@ -236,33 +236,32 @@ class IntegratedPipelineConfig:
     def get_integration_summary(self) -> str:
         """Generate human-readable configuration summary"""
         summary = f"""
-🔧 Integrated Pipeline Configuration Summary
-═══════════════════════════════════════════
+Integrated Pipeline Configuration Summary
 
-📊 BICEP Settings:
+BICEP Settings:
   • Paths: {self.bicep.n_paths} × {self.bicep.n_steps} steps
   • Target latency: {self.bicep.target_latency_ms}ms
   • Device: {self.bicep.device}, Triton: {self.bicep.use_triton}
 
-🧠 ENN Settings:  
+ENN Settings:  
   • Architecture: {self.enn.num_layers} layers × {self.enn.num_neurons} neurons × {self.enn.num_states} states
   • Push-out symbols: {self.enn.compressed_dim}D
   • Memory buffer: {self.enn.buffer_size} steps
 
-📈 Contradiction Graph Settings:
+Contradiction Graph Settings:
   • Max nodes: {self.contradiction_graph.max_nodes}
   • GNN layers: {self.contradiction_graph.num_layers} × {self.contradiction_graph.hidden_dim}D
   • Output: {self.contradiction_graph.output_dim}D embeddings
 
-🎯 Fusion Alpha Settings:
+Fusion Alpha Settings:
   • Four-modal fusion: FinBERT({self.fusion_alpha.finbert_dim}) + Tech({self.fusion_alpha.tech_features_dim}) + Graph({self.fusion_alpha.graph_embedding_dim}) + PushOut({self.fusion_alpha.pushout_symbol_dim})
   • Hidden: {self.fusion_alpha.hidden_dim}D, Target: {self.fusion_alpha.target_mode}
 
-⚡ Performance Targets:
+Performance Targets:
   • End-to-end: <{self.orchestration.target_end_to_end_latency_ms}ms
   • Concurrent samples: {self.orchestration.max_concurrent_samples}
 
-✅ Category Theory Validation: {all(self.validate_theoretical_consistency().values())}
+Category Theory Validation: {all(self.validate_theoretical_consistency().values())}
         """
         return summary
 
@@ -320,27 +319,27 @@ if __name__ == "__main__":
     
     # Test default configuration
     config = IntegratedPipelineConfig()
-    print("✅ Default configuration created successfully")
+    print("Default configuration created successfully")
     
     # Test configuration summary
     print(config.get_integration_summary())
     
     # Test performance targets
     targets = config.get_performance_targets()
-    print(f"📊 Performance targets: {targets}")
+    print(f"Performance targets: {targets}")
     
     # Test theoretical consistency
     theory_check = config.validate_theoretical_consistency()
-    print(f"🔬 Theory validation: {theory_check}")
+    print(f"Theory validation: {theory_check}")
     
     # Test preset configurations
     dev_config = get_development_config()
     prod_config = get_production_config() 
     research_config = get_research_config()
     
-    print("✅ All preset configurations created successfully")
-    print(f"🔧 Development BICEP paths: {dev_config.bicep.n_paths}")
-    print(f"🚀 Production target latency: {prod_config.orchestration.target_end_to_end_latency_ms}ms")
-    print(f"🔬 Research axiom validation: {research_config.orchestration.enable_axiom_validation}")
+    print("All preset configurations created successfully")
+    print(f"Development BICEP paths: {dev_config.bicep.n_paths}")
+    print(f"Production target latency: {prod_config.orchestration.target_end_to_end_latency_ms}ms")
+    print(f"Research axiom validation: {research_config.orchestration.enable_axiom_validation}")
     
-    print("\n🎯 Configuration system ready for integrated pipeline!")
+    print("\nConfiguration system ready for integrated pipeline!")

@@ -34,7 +34,7 @@ try:
     import praw  # Reddit API
     REDDIT_AVAILABLE = True
 except ImportError:
-    print("⚠️ praw not available. Install with: pip install praw")
+    print("praw not available. Install with: pip install praw")
     REDDIT_AVAILABLE = False
 
 # Setup logging
@@ -164,7 +164,7 @@ class FreeNewsCollector:
             
             # Test connection with read-only access
             # reddit.subreddit("investing").hot(limit=1)
-            logger.info("✅ Reddit client initialized (read-only)")
+            logger.info("Reddit client initialized (read-only)")
             return reddit
             
         except Exception as e:
@@ -529,7 +529,7 @@ def main():
     articles = collector.collect_all_news()
     collection_time = time.time() - start_time
     
-    print(f"✅ Collected {len(articles)} articles in {collection_time:.2f}s")
+    print(f"Collected {len(articles)} articles in {collection_time:.2f}s")
     
     if articles:
         # Save articles
@@ -551,17 +551,17 @@ def main():
         
         # Summary statistics
         summary = collector.get_news_summary()
-        print(f"\n📈 Collection Summary:")
+        print(f"\nCollection Summary:")
         print(f"   Total articles: {summary['total_articles']}")
         print(f"   Sources: {summary['unique_sources']}")
         print(f"   Unique symbols: {summary['unique_symbols']}")
         print(f"   Top symbols: {summary['top_symbols'][:10]}")
         
-        print(f"\n✅ Free news collection system working successfully!")
-        print(f"🎯 Ready for integration with FinBERT processing")
+        print(f"\nFree news collection system working successfully!")
+        print(f"Ready for integration with FinBERT processing")
         
     else:
-        print(f"⚠️ No articles collected. Check network connection and RSS feeds.")
+        print(f"No articles collected. Check network connection and RSS feeds.")
 
 if __name__ == "__main__":
     main()

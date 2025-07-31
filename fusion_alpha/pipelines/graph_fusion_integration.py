@@ -116,7 +116,7 @@ class GraphAwareFusionNet(nn.Module):
         
         # Check for NaN values (safety check)
         if torch.isnan(fused_input).any():
-            print("⚠️ NaN detected in fused input")
+            print("NaN detected in fused input")
             fused_input = torch.nan_to_num(fused_input, nan=0.0)
         
         # Project to hidden dimension
@@ -221,7 +221,7 @@ class GraphAwareContradictionEngine(nn.Module):
             contradiction_type = "underhype"
         
         if contradiction_detected:
-            print(f"  ✅ Contradiction detected: {contradiction_type}")
+            print(f"  Contradiction detected: {contradiction_type}")
             # Enhanced transformation with graph context
             enhanced_input = torch.cat([finbert_embedding, graph_embedding])
             updated_embedding = self.transform(enhanced_input)
@@ -448,14 +448,14 @@ if __name__ == "__main__":
     with torch.no_grad():
         results = pipeline(finbert_embs, tech_features, price_movements, sentiment_scores)
     
-    print(f"✅ Predictions shape: {results['predictions'].shape}")
-    print(f"✅ Graph embeddings shape: {results['graph_embeddings'].shape}")
-    print(f"✅ Push-out symbols shape: {results['pushout_symbols'].shape}")
-    print(f"✅ Detected contradictions: {results['contradiction_types']}")
+    print(f"Predictions shape: {results['predictions'].shape}")
+    print(f"Graph embeddings shape: {results['graph_embeddings'].shape}")
+    print(f"Push-out symbols shape: {results['pushout_symbols'].shape}")
+    print(f"Detected contradictions: {results['contradiction_types']}")
     
     # Test interpretability
     interpretability = pipeline.get_interpretability_summary(results)
-    print(f"✅ Sample interpretation: {interpretability[0]}")
+    print(f"Sample interpretation: {interpretability[0]}")
     
-    print("🚀 Integrated Pipeline Implementation Complete!")
-    print("📈 Ready for integration with BICEP and ENN components!")
+    print("Integrated Pipeline Implementation Complete!")
+    print("Ready for integration with BICEP and ENN components!")

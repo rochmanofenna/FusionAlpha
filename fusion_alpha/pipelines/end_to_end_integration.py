@@ -39,7 +39,7 @@ try:
     from bicep.stochastic_control import apply_stochastic_controls
     BICEP_AVAILABLE = True
 except ImportError:
-    print("⚠️ BICEP components not available - using mock implementation")
+    print("BICEP components not available - using mock implementation")
     BICEP_AVAILABLE = False
 
 # Import ENN components (multi-state neurons)
@@ -49,7 +49,7 @@ try:
     from enn.state_collapse import StateAutoEncoder
     ENN_AVAILABLE = True
 except ImportError:
-    print("⚠️ ENN components not available - using mock implementation") 
+    print("ENN components not available - using mock implementation") 
     ENN_AVAILABLE = False
 
 @dataclass
@@ -83,7 +83,7 @@ Total Latency: {self.total_latency:.2f}ms (Target: <25ms)
   ├─ Graph: {self.graph_latency:.2f}ms
   └─ Fusion: {self.fusion_latency:.2f}ms
 
-📈 Quality Metrics
+Quality Metrics
 Contradiction Rate: {self.contradiction_detection_rate:.2%}
 Graph Connectivity: {self.graph_connectivity_score:.3f}
 Push-out Stability: {self.pushout_symbol_stability:.3f}
@@ -256,7 +256,7 @@ class ENNInterface:
                     pushout_symbols = torch.cat([pushout_symbols, padding], dim=1)
         
         except Exception as e:
-            print(f"⚠️ ENN processing failed: {e}, using mock output")
+            print(f"ENN processing failed: {e}, using mock output")
             # Fallback to mock implementation
             batch_size = bicep_paths.size(0)
             enn_output = torch.randn(batch_size, self.config.num_neurons, self.config.num_states, device=self.device)
@@ -287,11 +287,11 @@ class IntegratedTradingPipeline:
         
         # BICEP interface
         self.bicep_interface = BICEPInterface(config)
-        self.logger.info("✅ BICEP interface initialized")
+        self.logger.info("BICEP interface initialized")
         
         # ENN interface  
         self.enn_interface = ENNInterface(config)
-        self.logger.info("✅ ENN interface initialized")
+        self.logger.info("ENN interface initialized")
         
         # Fusion Alpha with contradiction graphs
         self.fusion_pipeline = CompletePipeline(
@@ -299,13 +299,13 @@ class IntegratedTradingPipeline:
             hidden_dim=config.fusion_alpha.hidden_dim,
             target_mode=config.fusion_alpha.target_mode
         ).to(self.device)
-        self.logger.info("✅ Fusion Alpha pipeline initialized")
+        self.logger.info("Fusion Alpha pipeline initialized")
         
         # Performance monitoring
         self.metrics = PipelineMetrics()
         self.sample_count = 0
         
-        self.logger.info("🚀 Integrated pipeline initialization complete!")
+        self.logger.info("Integrated pipeline initialization complete!")
     
     def _setup_logging(self):
         """Setup comprehensive logging"""
@@ -573,25 +573,25 @@ class IntegratedTradingPipeline:
     
     def get_performance_summary(self) -> str:
         """Get comprehensive performance summary"""
-        target_met = "✅" if self.metrics.total_latency <= self.config.orchestration.target_end_to_end_latency_ms else "❌"
+        target_met = "PASS" if self.metrics.total_latency <= self.config.orchestration.target_end_to_end_latency_ms else "FAIL"
         
         return f"""
-🎯 Integrated Pipeline Performance Summary
+Integrated Pipeline Performance Summary
 {'='*50}
 
 {target_met} Latency Target: {self.metrics.total_latency:.2f}ms / {self.config.orchestration.target_end_to_end_latency_ms:.0f}ms
 
 {self.metrics}
 
-📈 Processing Statistics:
+Processing Statistics:
 Total samples processed: {self.sample_count:,}
 Average throughput: {self.sample_count / (self.metrics.total_latency / 1000) if self.metrics.total_latency > 0 else 0:.0f} samples/sec
 
-🔧 Component Status:
-BICEP: {'✅ Available' if BICEP_AVAILABLE else '⚠️ Mock'}
-ENN: {'✅ Available' if ENN_AVAILABLE else '⚠️ Mock'}
-Fusion Alpha: ✅ Available
-Contradiction Graphs: ✅ Available
+Component Status:
+BICEP: {'Available' if BICEP_AVAILABLE else 'Mock'}
+ENN: {'Available' if ENN_AVAILABLE else 'Mock'}
+Fusion Alpha: Available
+Contradiction Graphs: Available
         """
 
 def create_demo_pipeline() -> IntegratedTradingPipeline:
@@ -608,7 +608,7 @@ def create_demo_pipeline() -> IntegratedTradingPipeline:
 
 if __name__ == "__main__":
     # Demonstration of the complete integrated pipeline
-    print("🚀 Testing Complete Integrated BICEP -> ENN -> Fusion Alpha Pipeline")
+    print("Testing Complete Integrated BICEP -> ENN -> Fusion Alpha Pipeline")
     print("="*70)
     
     # Create pipeline
@@ -628,11 +628,11 @@ if __name__ == "__main__":
     results = pipeline.forward(finbert_embs, tech_features, price_movements, sentiment_scores)
     end_time = time.perf_counter()
     
-    print(f"⏱️ Total processing time: {(end_time - start_time) * 1000:.2f}ms")
-    print(f"✅ Predictions shape: {results['predictions'].shape}")
-    print(f"📈 Sample predictions: {results['predictions'][:5].tolist()}")
-    print(f"🔍 Contradiction types: {results['contradiction_types']}")
-    print(f"⚡ Latency breakdown: {results['latency_breakdown']}")
+    print(f"Total processing time: {(end_time - start_time) * 1000:.2f}ms")
+    print(f"Predictions shape: {results['predictions'].shape}")
+    print(f"Sample predictions: {results['predictions'][:5].tolist()}")
+    print(f"Contradiction types: {results['contradiction_types']}")
+    print(f"Latency breakdown: {results['latency_breakdown']}")
     
     # Display interpretability
     print(f"\n🧠 Sample interpretability trace:")
@@ -656,15 +656,15 @@ if __name__ == "__main__":
     
     # Run async test
     async_results = asyncio.run(test_async())
-    print(f"✅ Async processing completed: {async_results['predictions'].shape}")
+    print(f"Async processing completed: {async_results['predictions'].shape}")
     
-    print(f"\n🎯 INTEGRATION COMPLETE!")
-    print(f"📋 Ready for:")
+    print(f"\nINTEGRATION COMPLETE!")
+    print(f"Ready for:")
     print(f"   • Live trading deployment")
     print(f"   • Performance optimization")
     print(f"   • Production monitoring")
     print(f"   • Regulatory compliance")
     
     print(f"\n{'='*70}")
-    print(f"🚀 BICEP -> ENN -> Fusion Alpha pipeline is OPERATIONAL! 🚀")
+    print(f"BICEP -> ENN -> Fusion Alpha pipeline is OPERATIONAL!")
     print(f"{'='*70}")

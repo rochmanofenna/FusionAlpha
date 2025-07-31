@@ -20,7 +20,7 @@ try:
     from transformers import BertTokenizer, BertForSequenceClassification
     TRANSFORMERS_AVAILABLE = True
 except ImportError:
-    print("⚠️ transformers not available. Install with: pip install transformers")
+    print("transformers not available. Install with: pip install transformers")
     TRANSFORMERS_AVAILABLE = False
 
 # Setup logging
@@ -92,7 +92,7 @@ class RealFinBERTProcessor:
                 return_all_scores=True
             )
             
-            logger.info(f"✅ FinBERT loaded successfully: {self.config.model_name}")
+            logger.info(f"FinBERT loaded successfully: {self.config.model_name}")
             
         except Exception as e:
             logger.error(f"Failed to load FinBERT: {e}")
@@ -377,22 +377,22 @@ if __name__ == "__main__":
         results = processor.process_news_batch(sample_texts)
         processing_time = time.time() - start_time
         
-        print(f"✅ Processing completed in {processing_time:.3f}s")
-        print(f"📈 Embeddings shape: {results['finbert_embeddings'].shape}")
-        print(f"📊 Sentiment scores: {results['sentiment_scores'][:3].tolist()}")
-        print(f"🏷️  Labels: {results['sentiment_labels'][:3]}")
+        print(f"Processing completed in {processing_time:.3f}s")
+        print(f"Embeddings shape: {results['finbert_embeddings'].shape}")
+        print(f"Sentiment scores: {results['sentiment_scores'][:3].tolist()}")
+        print(f"Labels: {results['sentiment_labels'][:3]}")
         
         # Performance stats
         perf_stats = processor.finbert.get_performance_stats()
         cache_stats = processor.get_cache_stats()
         
-        print(f"\n📈 Performance Statistics:")
+        print(f"\nPerformance Statistics:")
         print(f"   Texts per second: {perf_stats['texts_per_second']:.1f}")
         print(f"   Average time per text: {perf_stats['avg_time_per_text']*1000:.1f}ms")
         print(f"   Cache hit rate: {cache_stats['hit_rate']:.1%}")
         
         # Test with individual texts
-        print(f"\n🔍 Individual text analysis:")
+        print(f"\nIndividual text analysis:")
         for i, text in enumerate(sample_texts[:3]):
             sentiment = results['sentiment_scores'][i].item()
             label = results['sentiment_labels'][i]
@@ -401,9 +401,9 @@ if __name__ == "__main__":
             print(f"{i+1}. \"{text[:50]}...\"")
             print(f"   Sentiment: {sentiment:.3f} ({label}) [confidence: {confidence:.3f}]")
         
-        print(f"\n✅ Real FinBERT integration working successfully!")
-        print(f"🎯 Ready for integration with contradiction detection pipeline")
+        print(f"\nReal FinBERT integration working successfully!")
+        print(f"Ready for integration with contradiction detection pipeline")
         
     except Exception as e:
-        print(f"❌ Error testing FinBERT: {e}")
-        print(f"💡 Make sure to install: pip install transformers torch")
+        print(f"Error testing FinBERT: {e}")
+        print(f"Make sure to install: pip install transformers torch")

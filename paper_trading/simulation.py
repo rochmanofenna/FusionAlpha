@@ -36,7 +36,7 @@ try:
     from fusion_alpha.pipelines.end_to_end_integration import IntegratedTradingPipeline
     COMPONENTS_AVAILABLE = True
 except ImportError:
-    print("⚠️ Some components not available, using mock implementations")
+    print("Some components not available, using mock implementations")
     COMPONENTS_AVAILABLE = False
 
 # Setup logging
@@ -716,7 +716,7 @@ def main():
     simulator.print_status()
     
     try:
-        print(f"\n🚀 Starting paper trading simulation...")
+        print(f"\nStarting paper trading simulation...")
         print(f"   Initial cash: ${config.initial_cash:,.2f}")
         print(f"   Symbols: {config.symbols}")
         print(f"   Press Ctrl+C to stop")
@@ -735,12 +735,12 @@ def main():
         simulator.stop_trading()
         simulator.print_status()
         
-        print(f"\n✅ Paper trading simulation completed!")
+        print(f"\nPaper trading simulation completed!")
         print(f"📊 Trades executed: {len(simulator.trade_log)}")
         print(f"💾 Results saved to: {simulator.output_dir}")
         
     except KeyboardInterrupt:
-        print(f"\n⏹️ Simulation stopped by user")
+        print(f"\nSimulation stopped by user")
         simulator.stop_trading()
         simulator.print_status()
     
