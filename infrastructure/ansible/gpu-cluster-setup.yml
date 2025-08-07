@@ -1,0 +1,676 @@
+---
+# Ansible Playbook for GPU Cluster RHEL Configuration
+# Configures RHEL 8/9 systems for high-performance ML/HPC workloads
+
+- name: Configure GPU Cluster Nodes for ML/HPC Workloads
+  hosts: gpu_cluster
+  become: yes
+  gather_facts: yes
+  vars:
+    # Software versions
+    nvidia_driver_version: "525.125.06"
+    cuda_version: "12.0"
+    docker_version: "24.0.7"
+    python_version: "3.11"
+    
+    # System configuration
+    cluster_name: "ml-gpu-cluster"
+    environment: "{{ env | default('dev') }}"
+    data_mount_point: "/data"
+    
+    # User configuration
+    ml_user: "mluser"
+    ml_group: "mlgroup"
+    
+    # Security settings
+    ssh_port: 22
+    firewall_enabled: true
+    selinux_mode: "enforcing"
+    
+  tasks:
+    # ===============================
+    # SYSTEM PREPARATION
+    # ===============================
+    
+    - name: Update all packages to latest version
+      dnf:
+        name: "*"
+        state: latest
+        update_cache: yes
+      tags: [system, updates]
+    
+    - name: Install EPEL repository
+      dnf:
+        name: epel-release
+        state: present
+      tags: [system, repositories]
+    
+    - name: Install essential system packages
+      dnf:
+        name:
+          - curl
+          - wget
+          - git
+          - vim
+          - htop
+          - iotop
+          - tree
+          - unzip
+          - tar
+          - gzip
+          - rsync
+          - screen
+          - tmux
+          - bash-completion
+          - yum-utils
+          - device-mapper-persistent-data
+          - lvm2
+          - kernel-devel
+          - kernel-headers
+          - gcc
+          - gcc-c++
+          - make
+          - cmake
+          - autoconf
+          - automake
+          - libtool
+          - pkgconfig
+          - openssl-devel
+          - zlib-devel
+          - bzip2-devel
+          - readline-devel
+          - sqlite-devel
+          - libffi-devel
+        state: present
+      tags: [system, packages]
+    
+    - name: Configure system hostname
+      hostname:
+        name: "{{ cluster_name }}-{{ ansible_default_ipv4.address | replace('.', '-') }}"
+      tags: [system, hostname]
+    
+    # ===============================
+    # USER AND GROUP MANAGEMENT
+    # ===============================
+    
+    - name: Create ML compute group
+      group:
+        name: "{{ ml_group }}"
+        state: present
+      tags: [users, groups]
+    
+    - name: Create ML user account
+      user:
+        name: "{{ ml_user }}"
+        group: "{{ ml_group }}"
+        groups: wheel,docker
+        shell: /bin/bash
+        create_home: yes
+        home: "/home/{{ ml_user }}"
+        append: yes
+      tags: [users]
+    
+    - name: Configure sudo access for ML user
+      lineinfile:
+        path: /etc/sudoers.d/{{ ml_user }}
+        line: "{{ ml_user }} ALL=(ALL) NOPASSWD: ALL"
+        create: yes
+        mode: '0440'
+        validate: 'visudo -cf %s'
+      tags: [users, sudo]
+    
+    - name: Create SSH directory for ML user
+      file:
+        path: "/home/{{ ml_user }}/.ssh"
+        state: directory
+        owner: "{{ ml_user }}"
+        group: "{{ ml_group }}"
+        mode: '0700'
+      tags: [users, ssh]
+    
+    # ===============================
+    # STORAGE CONFIGURATION
+    # ===============================
+    
+    - name: Create data directory
+      file:
+        path: "{{ data_mount_point }}"
+        state: directory
+        mode: '0755'
+      tags: [storage]
+    
+    - name: Create ML project directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ml_user }}"
+        group: "{{ ml_group }}"
+        mode: '0755'
+      loop:
+        - "{{ data_mount_point }}/datasets"
+        - "{{ data_mount_point }}/checkpoints"
+        - "{{ data_mount_point }}/experiments"
+        - "{{ data_mount_point }}/logs"
+        - "{{ data_mount_point }}/models"
+        - "/opt/bicep"
+        - "/opt/enn"
+        - "/opt/projects"
+        - "/var/log/ml-services"
+      tags: [storage, directories]
+    
+    - name: Configure system limits for ML workloads
+      pam_limits:
+        domain: "{{ ml_user }}"
+        limit_type: "{{ item.type }}"
+        limit_item: "{{ item.item }}"
+        value: "{{ item.value }}"
+      loop:
+        - { type: 'soft', item: 'nofile', value: '1048576' }
+        - { type: 'hard', item: 'nofile', value: '1048576' }
+        - { type: 'soft', item: 'nproc', value: '1048576' }  
+        - { type: 'hard', item: 'nproc', value: '1048576' }
+        - { type: 'soft', item: 'memlock', value: 'unlimited' }
+        - { type: 'hard', item: 'memlock', value: 'unlimited' }
+      tags: [system, limits]
+    
+    # ===============================
+    # NVIDIA DRIVER INSTALLATION
+    # ===============================
+    
+    - name: Add NVIDIA CUDA repository
+      yum_repository:
+        name: cuda
+        description: NVIDIA CUDA Repository
+        baseurl: "https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/"
+        gpgkey: "https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/D42D0685.pub"
+        gpgcheck: yes
+        enabled: yes
+      tags: [nvidia, repositories]
+    
+    - name: Install NVIDIA driver
+      dnf:
+        name: "nvidia-driver-{{ nvidia_driver_version }}"
+        state: present
+      register: nvidia_driver_install
+      tags: [nvidia, drivers]
+    
+    - name: Install CUDA toolkit
+      dnf:
+        name: "cuda-toolkit-{{ cuda_version | replace('.', '-') }}"
+        state: present
+      tags: [nvidia, cuda]
+    
+    - name: Install NVIDIA development tools
+      dnf:
+        name:
+          - nvidia-modprobe
+          - nvidia-persistenced
+          - nvidia-xconfig
+        state: present
+      tags: [nvidia, tools]
+    
+    - name: Configure NVIDIA persistence daemon
+      systemd:
+        name: nvidia-persistenced
+        enabled: yes
+        state: started
+      tags: [nvidia, services]
+    
+    # ===============================
+    # DOCKER INSTALLATION
+    # ===============================
+    
+    - name: Add Docker CE repository
+      yum_repository:
+        name: docker-ce
+        description: Docker CE Stable Repository
+        baseurl: "https://download.docker.com/linux/centos/8/x86_64/stable/"
+        gpgkey: "https://download.docker.com/linux/centos/gpg"
+        gpgcheck: yes
+        enabled: yes
+      tags: [docker, repositories]
+    
+    - name: Install Docker CE
+      dnf:
+        name:
+          - "docker-ce-{{ docker_version }}"
+          - "docker-ce-cli-{{ docker_version }}"
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+      tags: [docker, install]
+    
+    - name: Install NVIDIA Container Toolkit
+      dnf:
+        name: nvidia-container-toolkit
+        state: present
+      tags: [docker, nvidia]
+    
+    - name: Configure Docker daemon for NVIDIA runtime
+      copy:
+        content: |
+          {
+              "default-runtime": "nvidia",
+              "runtimes": {
+                  "nvidia": {
+                      "path": "nvidia-container-runtime",
+                      "runtimeArgs": []
+                  }
+              },
+              "log-driver": "json-file",
+              "log-opts": {
+                  "max-size": "10m",
+                  "max-file": "3"
+              },
+              "storage-driver": "overlay2",
+              "dns": ["8.8.8.8", "8.8.4.4"]
+          }
+        dest: /etc/docker/daemon.json
+        mode: '0644'
+      notify: restart_docker
+      tags: [docker, configuration]
+    
+    - name: Enable and start Docker service
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+      tags: [docker, services]
+    
+    # ===============================
+    # PYTHON AND ML FRAMEWORKS
+    # ===============================
+    
+    - name: Install Python development packages
+      dnf:
+        name:
+          - "python{{ python_version }}"
+          - "python{{ python_version }}-pip"
+          - "python{{ python_version }}-devel"
+          - python3-virtualenv
+        state: present
+      tags: [python, packages]
+    
+    - name: Upgrade pip to latest version
+      pip:
+        name: pip
+        state: latest
+        executable: "pip{{ python_version }}"
+      tags: [python, pip]
+    
+    - name: Install essential Python packages
+      pip:
+        name:
+          - wheel
+          - setuptools
+          - virtualenv
+          - virtualenvwrapper
+        executable: "pip{{ python_version }}"
+        state: latest
+      tags: [python, packages]
+    
+    - name: Create Python virtual environment for ML
+      pip:
+        name:
+          - torch
+          - torchvision
+          - torchaudio
+          - tensorflow-gpu
+          - transformers
+          - datasets
+          - accelerate
+          - wandb
+          - tensorboard
+          - jupyter
+          - jupyterlab
+          - matplotlib
+          - seaborn
+          - pandas
+          - numpy
+          - scikit-learn
+          - opencv-python
+          - pillow
+          - tqdm
+          - psutil
+          - gpustat
+          - nvidia-ml-py3
+        virtualenv: "/opt/ml-env"
+        virtualenv_python: "python{{ python_version }}"
+      become_user: "{{ ml_user }}"
+      tags: [python, ml_frameworks]
+    
+    # ===============================
+    # MONITORING AND LOGGING
+    # ===============================
+    
+    - name: Install monitoring tools
+      dnf:
+        name:
+          - htop
+          - iotop
+          - nethogs
+          - iftop
+          - nmon
+          - sysstat
+          - lsof
+          - strace
+          - tcpdump
+          - wireshark-cli
+        state: present
+      tags: [monitoring, tools]
+    
+    - name: Configure rsyslog for ML services
+      blockinfile:
+        path: /etc/rsyslog.conf
+        block: |
+          # ML Services Logging
+          local0.*    /var/log/ml-services/bicep.log
+          local1.*    /var/log/ml-services/enn.log
+          local2.*    /var/log/ml-services/training.log
+        marker: "# {mark} ML SERVICES LOGGING CONFIG"
+      notify: restart_rsyslog
+      tags: [logging, configuration]
+    
+    - name: Create logrotate configuration for ML services
+      copy:
+        content: |
+          /var/log/ml-services/*.log {
+              daily
+              rotate 30
+              compress
+              delaycompress
+              missingok
+              notifempty
+              create 644 {{ ml_user }} {{ ml_group }}
+              postrotate
+                  /bin/systemctl reload rsyslog > /dev/null 2>&1 || true
+              endscript
+          }
+        dest: /etc/logrotate.d/ml-services
+        mode: '0644'
+      tags: [logging, rotation]
+    
+    # ===============================
+    # NETWORK CONFIGURATION
+    # ===============================
+    
+    - name: Configure firewall for ML services
+      firewalld:
+        port: "{{ item }}"
+        permanent: yes
+        state: enabled
+        immediate: yes
+      loop:
+        - "22/tcp"        # SSH
+        - "6006/tcp"      # TensorBoard
+        - "8888/tcp"      # Jupyter
+        - "8080/tcp"      # BICEP service
+        - "9090/tcp"      # Prometheus
+        - "3000/tcp"      # Grafana
+      when: firewall_enabled
+      tags: [network, firewall]
+    
+    - name: Configure high-performance networking
+      sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        state: present
+        sysctl_file: /etc/sysctl.d/99-ml-performance.conf
+      loop:
+        - { name: 'net.core.rmem_max', value: '134217728' }
+        - { name: 'net.core.wmem_max', value: '134217728' }
+        - { name: 'net.ipv4.tcp_rmem', value: '4096 87380 134217728' }
+        - { name: 'net.ipv4.tcp_wmem', value: '4096 65536 134217728' }
+        - { name: 'net.core.netdev_max_backlog', value: '5000' }
+        - { name: 'vm.swappiness', value: '1' }
+        - { name: 'vm.dirty_ratio', value: '15' }
+        - { name: 'vm.dirty_background_ratio', value: '5' }
+      tags: [network, performance]
+    
+    # ===============================
+    # SECURITY CONFIGURATION
+    # ===============================
+    
+    - name: Configure SSH security
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+      loop:
+        - { regexp: '^#?PermitRootLogin', line: 'PermitRootLogin no' }
+        - { regexp: '^#?PasswordAuthentication', line: 'PasswordAuthentication no' }
+        - { regexp: '^#?PubkeyAuthentication', line: 'PubkeyAuthentication yes' }
+        - { regexp: '^#?X11Forwarding', line: 'X11Forwarding no' }
+        - { regexp: '^#?MaxAuthTries', line: 'MaxAuthTries 3' }
+        - { regexp: '^#?ClientAliveInterval', line: 'ClientAliveInterval 300' }
+        - { regexp: '^#?ClientAliveCountMax', line: 'ClientAliveCountMax 2' }
+      notify: restart_sshd
+      tags: [security, ssh]
+    
+    - name: Configure SELinux for ML workloads
+      selinux:
+        policy: targeted
+        state: "{{ selinux_mode }}"
+      tags: [security, selinux]
+    
+    - name: Install and configure fail2ban
+      dnf:
+        name: fail2ban
+        state: present
+      notify: restart_fail2ban
+      tags: [security, fail2ban]
+    
+    - name: Configure fail2ban for SSH protection
+      copy:
+        content: |
+          [sshd]
+          enabled = true
+          port = {{ ssh_port }}
+          filter = sshd
+          logpath = /var/log/secure
+          maxretry = 3
+          bantime = 3600
+          findtime = 600
+        dest: /etc/fail2ban/jail.d/sshd.conf
+        mode: '0644'
+      notify: restart_fail2ban
+      tags: [security, fail2ban]
+    
+    # ===============================
+    # PERFORMANCE TUNING
+    # ===============================
+    
+    - name: Configure CPU governor for performance
+      copy:
+        content: |
+          #!/bin/bash
+          # Set CPU governor to performance mode
+          for gov in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+              [ -f $gov ] && echo performance > $gov
+          done
+        dest: /usr/local/bin/set-cpu-performance
+        mode: '0755'
+      tags: [performance, cpu]
+    
+    - name: Create systemd service for CPU performance
+      copy:
+        content: |
+          [Unit]
+          Description=Set CPU Performance Governor
+          After=multi-user.target
+          
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/local/bin/set-cpu-performance
+          RemainAfterExit=yes
+          
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/cpu-performance.service
+        mode: '0644'
+      notify: reload_systemd
+      tags: [performance, systemd]
+    
+    - name: Enable CPU performance service
+      systemd:
+        name: cpu-performance
+        enabled: yes
+        state: started
+      tags: [performance, services]
+    
+    # ===============================
+    # ML SERVICE CONFIGURATIONS
+    # ===============================
+    
+    - name: Create BICEP service configuration
+      template:
+        src: bicep-service.service.j2
+        dest: /etc/systemd/system/bicep.service
+        mode: '0644'
+      notify: reload_systemd
+      tags: [services, bicep]
+    
+    - name: Create ENN service configuration  
+      template:
+        src: enn-service.service.j2
+        dest: /etc/systemd/system/enn.service
+        mode: '0644'
+      notify: reload_systemd
+      tags: [services, enn]
+    
+    - name: Create GPU monitoring script
+      copy:
+        content: |
+          #!/usr/bin/env python3
+          import time
+          import json
+          import subprocess
+          import psutil
+          from datetime import datetime
+          import logging
+          
+          logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+          logger = logging.getLogger(__name__)
+          
+          def get_gpu_metrics():
+              try:
+                  result = subprocess.run([
+                      'nvidia-smi', 
+                      '--query-gpu=index,name,temperature.gpu,utilization.gpu,utilization.memory,memory.total,memory.used,memory.free',
+                      '--format=csv,noheader,nounits'
+                  ], capture_output=True, text=True, check=True)
+                  
+                  metrics = []
+                  for line in result.stdout.strip().split('\n'):
+                      if line:
+                          values = line.split(', ')
+                          metrics.append({
+                              'gpu_id': int(values[0]),
+                              'name': values[1],
+                              'temperature': float(values[2]),
+                              'utilization_gpu': float(values[3]),
+                              'utilization_memory': float(values[4]),
+                              'memory_total': float(values[5]),
+                              'memory_used': float(values[6]),
+                              'memory_free': float(values[7]),
+                              'timestamp': datetime.now().isoformat()
+                          })
+                  return metrics
+              except Exception as e:
+                  logger.error(f"Failed to get GPU metrics: {e}")
+                  return []
+          
+          def main():
+              while True:
+                  try:
+                      gpu_metrics = get_gpu_metrics()
+                      cpu_percent = psutil.cpu_percent(interval=1)
+                      memory = psutil.virtual_memory()
+                      
+                      system_metrics = {
+                          'timestamp': datetime.now().isoformat(),
+                          'hostname': '{{ ansible_hostname }}',
+                          'cluster': '{{ cluster_name }}',
+                          'environment': '{{ environment }}', 
+                          'cpu_percent': cpu_percent,
+                          'memory_percent': memory.percent,
+                          'memory_available_gb': memory.available / (1024**3),
+                          'gpu_metrics': gpu_metrics
+                      }
+                      
+                      logger.info(f"METRICS: {json.dumps(system_metrics)}")
+                      time.sleep(60)
+                      
+                  except Exception as e:
+                      logger.error(f"Error in monitoring loop: {e}")
+                      time.sleep(30)
+          
+          if __name__ == "__main__":
+              main()
+        dest: /opt/scripts/gpu_monitor.py
+        mode: '0755'
+        owner: "{{ ml_user }}"
+        group: "{{ ml_group }}"
+      tags: [monitoring, scripts]
+    
+    - name: Create GPU monitoring service
+      copy:
+        content: |
+          [Unit]
+          Description=GPU and System Monitoring Service
+          After=multi-user.target
+          
+          [Service]
+          Type=simple
+          User={{ ml_user }}
+          Group={{ ml_group }}
+          ExecStart=/opt/ml-env/bin/python /opt/scripts/gpu_monitor.py
+          Restart=always
+          RestartSec=30
+          StandardOutput=journal
+          StandardError=journal
+          SyslogIdentifier=gpu-monitor
+          
+          [Install]
+          WantedBy=multi-user.target
+        dest: /etc/systemd/system/gpu-monitor.service
+        mode: '0644'
+      notify: reload_systemd
+      tags: [monitoring, services]
+    
+    - name: Enable GPU monitoring service
+      systemd:
+        name: gpu-monitor
+        enabled: yes
+        state: started
+      tags: [monitoring, services]
+    
+  # ===============================
+  # HANDLERS
+  # ===============================
+  
+  handlers:
+    - name: restart_docker
+      systemd:
+        name: docker
+        state: restarted
+    
+    - name: restart_rsyslog
+      systemd:
+        name: rsyslog
+        state: restarted
+    
+    - name: restart_sshd
+      systemd:
+        name: sshd
+        state: restarted
+    
+    - name: restart_fail2ban
+      systemd:
+        name: fail2ban
+        state: restarted
+    
+    - name: reload_systemd
+      systemd:
+        daemon_reload: yes

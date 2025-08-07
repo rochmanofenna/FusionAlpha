@@ -1,0 +1,306 @@
+# Prometheus Configuration for ML GPU Cluster Monitoring
+# Comprehensive monitoring setup for high-performance computing workloads
+
+global:
+  # Global scrape settings
+  scrape_interval: 15s          # Scrape targets every 15 seconds
+  evaluation_interval: 15s      # Evaluate rules every 15 seconds
+  scrape_timeout: 10s          # Timeout for scrapes
+  
+  # External labels for federated setups
+  external_labels:
+    cluster: 'ml-gpu-cluster'
+    environment: 'production'
+    region: 'us-west-2'
+    
+  # Query logging
+  query_log_file: /var/log/prometheus/queries.log
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - 'alertmanager:9093'
+      scheme: http
+      timeout: 10s
+      api_version: v2
+
+# Load alerting rules
+rule_files:
+  - "/etc/prometheus/rules/*.yml"
+  - "/etc/prometheus/alerts/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus monitoring itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 5s
+    metrics_path: /metrics
+
+  # System metrics via Node Exporter
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets:
+        - 'gpu-node-01:9100'
+        - 'gpu-node-02:9100'
+        - 'gpu-node-03:9100'
+        - 'gpu-node-04:9100'
+        - 'monitoring-node:9100'
+        - 'storage-node:9100'
+    scrape_interval: 10s
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '([^:]+):\d+'
+        target_label: instance
+        replacement: '${1}'
+      - source_labels: [instance]
+        regex: 'gpu-node-(\d+)'
+        target_label: node_type
+        replacement: 'gpu-compute'
+      - source_labels: [instance]
+        regex: 'monitoring-node'
+        target_label: node_type
+        replacement: 'monitoring'
+
+  # GPU metrics via NVIDIA DCGM Exporter
+  - job_name: 'dcgm-exporter'
+    static_configs:
+      - targets:
+        - 'gpu-node-01:9400'
+        - 'gpu-node-02:9400'
+        - 'gpu-node-03:9400'
+        - 'gpu-node-04:9400'
+    scrape_interval: 5s          # Higher frequency for GPU metrics
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '([^:]+):\d+'
+        target_label: instance
+        replacement: '${1}'
+      - source_labels: [instance]
+        target_label: job_type
+        replacement: 'gpu-monitoring'
+
+  # Custom GPU monitoring script metrics
+  - job_name: 'custom-gpu-monitor'
+    static_configs:
+      - targets:
+        - 'gpu-node-01:8080'
+        - 'gpu-node-02:8080'
+        - 'gpu-node-03:8080'
+        - 'gpu-node-04:8080'
+    scrape_interval: 30s
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '([^:]+):\d+'
+        target_label: instance
+        replacement: '${1}'
+
+  # Docker container metrics via cAdvisor
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets:
+        - 'gpu-node-01:8081'
+        - 'gpu-node-02:8081'
+        - 'gpu-node-03:8081'
+        - 'gpu-node-04:8081'
+    scrape_interval: 10s
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '([^:]+):\d+'
+        target_label: instance
+        replacement: '${1}'
+
+  # BICEP service metrics
+  - job_name: 'bicep-service'
+    static_configs:
+      - targets:
+        - 'gpu-node-01:8082'
+        - 'gpu-node-02:8082'
+    scrape_interval: 15s
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '([^:]+):\d+'
+        target_label: instance
+        replacement: '${1}'
+      - target_label: service
+        replacement: 'bicep'
+
+  # ENN service metrics  
+  - job_name: 'enn-service'
+    static_configs:
+      - targets:
+        - 'gpu-node-01:8083'
+        - 'gpu-node-02:8083'
+        - 'gpu-node-03:8083'
+        - 'gpu-node-04:8083'
+    scrape_interval: 15s
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '([^:]+):\d+'
+        target_label: instance
+        replacement: '${1}'
+      - target_label: service
+        replacement: 'enn'
+
+  # Jupyter Lab metrics
+  - job_name: 'jupyter-metrics'
+    static_configs:
+      - targets:
+        - 'gpu-node-01:8888'
+        - 'gpu-node-02:8888'
+        - 'gpu-node-03:8888'
+        - 'gpu-node-04:8888'
+    scrape_interval: 30s
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '([^:]+):\d+'
+        target_label: instance
+        replacement: '${1}'
+      - target_label: service
+        replacement: 'jupyter'
+
+  # Load balancer metrics
+  - job_name: 'haproxy'
+    static_configs:
+      - targets: ['load-balancer:8404']
+    scrape_interval: 10s
+    metrics_path: /metrics
+
+  # Database metrics (if using PostgreSQL for experiment tracking)
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Redis metrics (for caching/queuing)
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Blackbox monitoring for service health
+  - job_name: 'blackbox-http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+        - 'http://gpu-node-01:8080/health'    # BICEP health
+        - 'http://gpu-node-01:8083/health'    # ENN health
+        - 'http://gpu-node-01:8888/'          # Jupyter
+        - 'http://monitoring-node:3000/'      # Grafana
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # SSL certificate expiry monitoring
+  - job_name: 'blackbox-ssl'
+    metrics_path: /probe
+    params:
+      module: [tcp_connect]
+    static_configs:
+      - targets:
+        - 'gpu-node-01:443'
+        - 'monitoring-node:443'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # Custom ML training metrics
+  - job_name: 'ml-training-metrics'
+    honor_labels: true
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - ml-training
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name
+
+# Remote write configuration for long-term storage
+remote_write:
+  - url: "https://prometheus-remote-write.monitoring.internal/api/v1/write"
+    write_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'gpu_.*|node_.*|bicep_.*|enn_.*'
+        action: keep
+    queue_config:
+      capacity: 10000
+      max_shards: 200
+      min_shards: 1
+      max_samples_per_send: 5000
+      batch_send_deadline: 5s
+      min_backoff: 30ms
+      max_backoff: 100ms
+
+# Remote read configuration for historical data
+remote_read:
+  - url: "https://prometheus-remote-read.monitoring.internal/api/v1/read"
+    read_recent: true
+
+# Storage configuration
+storage:
+  tsdb:
+    path: /var/lib/prometheus/data
+    retention.time: 30d          # Keep data for 30 days locally
+    retention.size: 500GB        # Maximum storage size
+    min-block-duration: 2h      # Minimum block duration
+    max-block-duration: 25h     # Maximum block duration
+    no-lockfile: false          # Use lockfile
+    wal-compression: true       # Compress WAL files
+
+# Web interface configuration
+web:
+  console.libraries: /etc/prometheus/console_libraries
+  console.templates: /etc/prometheus/consoles
+  enable-lifecycle: true        # Enable API endpoints for shutdown/reload
+  enable-admin-api: false       # Disable admin API for security
+  page-title: "ML GPU Cluster Monitoring"
+  external-url: "https://monitoring.ml-cluster.internal"
+  route-prefix: /
+  max-connections: 512
+  read-timeout: 30s
+  
+# Logging configuration
+log:
+  level: info                   # Log level: debug, info, warn, error
+  format: json                  # Log format: logfmt or json

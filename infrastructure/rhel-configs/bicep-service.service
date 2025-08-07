@@ -1,0 +1,67 @@
+[Unit]
+Description=BICEP Brownian Monte Carlo Compute Service
+Documentation=https://github.com/user/BICEP
+After=multi-user.target
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=bicep-user
+Group=bicep-group
+WorkingDirectory=/opt/bicep
+Environment=PYTHONPATH=/opt/bicep/src
+Environment=CUDA_VISIBLE_DEVICES=0,1,2,3
+Environment=BICEP_LOG_LEVEL=INFO
+Environment=BICEP_CONFIG_PATH=/etc/bicep/config.yaml
+Environment=BICEP_CHECKPOINT_DIR=/var/lib/bicep/checkpoints
+Environment=OMP_NUM_THREADS=8
+
+# Main service command - runs BICEP Monte Carlo service
+ExecStart=/opt/bicep/venv/bin/python -m bicep.brownian_motion \
+    --config-file /etc/bicep/config.yaml \
+    --log-level INFO \
+    --worker-threads 16 \
+    --gpu-acceleration \
+    --checkpoint-interval 300
+
+# Health check endpoint
+ExecStartPost=/bin/sleep 10
+ExecStartPost=/usr/bin/curl -f http://localhost:8080/health || exit 1
+
+# Graceful shutdown
+ExecStop=/bin/kill -TERM $MAINPID
+ExecStopPost=/bin/sleep 5
+ExecStopPost=/bin/kill -KILL $MAINPID
+TimeoutStopSec=30
+
+# Restart policy
+Restart=always
+RestartSec=10
+StartLimitInterval=300
+StartLimitBurst=3
+
+# Security and resource limits
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/bicep /var/log/bicep /tmp
+
+# Memory and CPU limits
+MemoryLimit=16G
+CPUQuota=800%  # 8 cores max
+TasksMax=1024
+
+# File descriptor limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bicep-service
+
+[Install]
+WantedBy=multi-user.target
+Alias=bicep.service

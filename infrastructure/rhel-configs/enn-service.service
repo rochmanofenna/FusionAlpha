@@ -1,0 +1,85 @@
+[Unit]
+Description=ENN Entangled Neural Network Training Service
+Documentation=https://github.com/user/ENN
+After=multi-user.target nvidia-docker.service
+Wants=network-online.target gpu-monitoring.service
+After=network-online.target
+
+[Service]
+Type=notify
+User=enn-user
+Group=ml-compute
+WorkingDirectory=/opt/enn
+Environment=PYTHONPATH=/opt/enn
+Environment=CUDA_VISIBLE_DEVICES=0,1,2,3
+Environment=ENN_LOG_LEVEL=INFO
+Environment=ENN_CONFIG_PATH=/etc/enn/training-config.yaml
+Environment=ENN_CHECKPOINT_DIR=/var/lib/enn/checkpoints
+Environment=ENN_DATA_DIR=/data/enn/datasets
+Environment=TORCH_CUDA_ARCH_LIST="7.5;8.0;8.6"
+Environment=OMP_NUM_THREADS=16
+
+# Main ENN training service
+ExecStart=/opt/enn/venv/bin/python -m enn.training.distributed_training \
+    --config /etc/enn/training-config.yaml \
+    --distributed \
+    --num-gpus 4 \
+    --log-level INFO \
+    --checkpoint-interval 100 \
+    --validation-interval 50 \
+    --early-stopping-patience 20
+
+# Pre-start validation
+ExecStartPre=/opt/enn/scripts/validate-gpu-setup.sh
+ExecStartPre=/opt/enn/scripts/check-data-availability.sh
+ExecStartPre=/bin/mkdir -p /var/lib/enn/checkpoints /var/log/enn
+
+# Health monitoring
+ExecStartPost=/bin/sleep 30
+ExecStartPost=/opt/enn/scripts/training-health-check.sh
+
+# Graceful shutdown with model saving
+ExecStop=/opt/enn/scripts/graceful-shutdown.sh $MAINPID
+ExecStopPost=/opt/enn/scripts/cleanup-temp-files.sh
+TimeoutStopSec=300  # Allow time for model checkpoint saving
+
+# Restart policy for long-running training
+Restart=on-failure
+RestartSec=60
+StartLimitInterval=3600
+StartLimitBurst=3
+
+# Advanced security for ML workloads
+NoNewPrivileges=true
+PrivateTmp=true  
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadWritePaths=/var/lib/enn /var/log/enn /tmp /data/enn
+
+# ML workload resource management
+MemoryLimit=64G
+CPUQuota=1600%  # 16 cores max
+TasksMax=8192
+LimitNOFILE=1048576  # High for data loading
+LimitNPROC=16384
+
+# GPU memory management
+Environment=PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512
+Environment=CUDA_LAUNCH_BLOCKING=0
+
+# Logging with structured output
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=enn-training
+SyslogFacility=local0
+
+# Notify watchdog every 60 seconds during training
+WatchdogSec=120
+NotifyAccess=main
+
+[Install]
+WantedBy=multi-user.target gpu-compute.target
+Alias=enn-training.service

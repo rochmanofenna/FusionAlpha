@@ -1,0 +1,222 @@
+TERRAFORM - INFRASTRUCTURE AS CODE (IAC)
+
+WHAT IS TERRAFORM?
+==================
+Terraform is an Infrastructure as Code (IaC) tool that allows you to define and provision 
+cloud infrastructure using declarative configuration files. Created by HashiCorp, it supports 
+multiple cloud providers (AWS, Azure, GCP, etc.) and on-premises solutions.
+
+KEY CONCEPTS:
+=============
+
+1. DECLARATIVE CONFIGURATION:
+   - Describe WHAT you want, not HOW to create it
+   - Terraform figures out the steps to achieve desired state
+   - Configuration written in HCL (HashiCorp Configuration Language)
+
+2. STATE MANAGEMENT:
+   - Terraform keeps track of resources in state files (.tfstate)
+   - Maps real resources to configuration
+   - Enables planning, updating, and destroying infrastructure
+
+3. PROVIDERS:
+   - Plugins that interact with APIs (AWS, Azure, GCP, etc.)
+   - Each provider has resources and data sources
+   - Example: aws_instance, google_compute_instance
+
+4. RESOURCES:
+   - Infrastructure components (EC2 instances, VPCs, databases)
+   - Defined with resource blocks: resource "aws_instance" "example"
+
+5. DATA SOURCES:
+   - Read-only information from existing infrastructure
+   - Example: data "aws_ami" "ubuntu" (find latest Ubuntu AMI)
+
+TERRAFORM WORKFLOW:
+==================
+
+1. WRITE - Create .tf configuration files
+2. PLAN - terraform plan (preview changes)
+3. APPLY - terraform apply (execute changes)
+4. DESTROY - terraform destroy (tear down infrastructure)
+
+REAL-WORLD GPU CLUSTER BREAKDOWN:
+=================================
+
+VPC AND NETWORKING:
+- aws_vpc: Isolated network environment
+- aws_subnet: Network segments across availability zones
+- aws_internet_gateway: Internet access
+- aws_route_table: Traffic routing rules
+- aws_security_group: Firewall rules
+
+COMPUTE RESOURCES:
+- aws_launch_template: Instance configuration template
+- aws_autoscaling_group: Automatic scaling based on demand
+- Instance types: p3.2xlarge (1 V100), p3.8xlarge (4 V100s)
+- GPU-optimized AMIs with NVIDIA drivers
+
+STORAGE:
+- EBS volumes: High-performance SSD storage
+- gp3 volumes: 3,000 IOPS baseline, burstable to 16,000
+- Encrypted at rest for security
+- Separate data volumes for datasets/checkpoints
+
+SECURITY FEATURES:
+- VPC isolation from internet
+- Security groups as virtual firewalls
+- IAM roles for service permissions
+- Encrypted storage and data in transit
+- SSH key-based authentication only
+
+MONITORING AND LOGGING:
+- CloudWatch integration for metrics
+- Custom log groups for application logs
+- GPU utilization monitoring
+- Cost tracking and alerts
+
+HIGH-LEVEL ARCHITECTURE DECISIONS:
+==================================
+
+1. MULTI-AZ DEPLOYMENT:
+   - Spreads instances across availability zones
+   - Increases fault tolerance
+   - Better resource availability
+
+2. AUTO SCALING:
+   - Automatic scaling based on workload
+   - Cost optimization (scale down when not needed)
+   - Handle varying compute demands
+
+3. SPOT INSTANCES (OPTIONAL):
+   - Up to 90% cost savings
+   - Good for fault-tolerant ML training
+   - Can be interrupted by AWS
+
+4. EBS OPTIMIZATION:
+   - gp3 volumes for cost-effective performance
+   - Separate data volumes for persistence
+   - Automatic snapshots for backups
+
+FINANCIAL/TRADING SYSTEM APPLICATIONS:
+=====================================
+
+1. HIGH-FREQUENCY TRADING:
+   - GPU acceleration for real-time analytics
+   - Low-latency networking (SR-IOV, Enhanced Networking)
+   - Co-location in specific AWS regions
+
+2. RISK MANAGEMENT:
+   - Monte Carlo simulations on GPU clusters
+   - Parallel processing of risk scenarios
+   - Real-time portfolio analysis
+
+3. MACHINE LEARNING MODELS:
+   - Training trading algorithms
+   - Feature engineering pipelines
+   - Model backtesting infrastructure
+
+4. MARKET DATA PROCESSING:
+   - Real-time tick data processing
+   - Pattern recognition at scale
+   - Sentiment analysis from news/social media
+
+COST OPTIMIZATION STRATEGIES:
+============================
+
+1. INSTANCE SCHEDULING:
+   - Auto-shutdown during non-trading hours
+   - Use smaller instances for development
+   - Reserved instances for predictable workloads
+
+2. STORAGE OPTIMIZATION:
+   - S3 for long-term data archival
+   - EBS snapshots for point-in-time backups
+   - Data lifecycle policies
+
+3. MONITORING:
+   - CloudWatch billing alarms
+   - Resource utilization tracking
+   - Automated cost reporting
+
+SECURITY BEST PRACTICES:
+=======================
+
+1. NETWORK SECURITY:
+   - VPC with private subnets
+   - NAT gateways for outbound internet
+   - Network ACLs as secondary firewall layer
+
+2. ACCESS CONTROL:
+   - IAM roles instead of access keys
+   - Principle of least privilege
+   - MFA for administrative access
+
+3. DATA PROTECTION:
+   - Encryption at rest and in transit
+   - Regular security patching
+   - Vulnerability scanning
+
+TERRAFORM ADVANTAGES:
+====================
+
+1. VERSION CONTROL:
+   - Infrastructure changes tracked in Git
+   - Code review process for infrastructure
+   - Rollback capabilities
+
+2. CONSISTENCY:
+   - Identical environments (dev/staging/prod)
+   - No configuration drift
+   - Repeatable deployments
+
+3. DOCUMENTATION:
+   - Infrastructure self-documented in code
+   - Dependencies clearly defined
+   - Change history preserved
+
+4. MULTI-CLOUD:
+   - Same tool works across cloud providers
+   - Avoid vendor lock-in
+   - Hybrid cloud strategies
+
+COMMON TERRAFORM COMMANDS:
+=========================
+terraform init          # Initialize working directory
+terraform plan          # Create execution plan
+terraform apply         # Apply configuration changes
+terraform destroy       # Destroy managed infrastructure
+terraform fmt           # Format configuration files
+terraform validate      # Validate configuration syntax
+terraform state list    # List resources in state
+terraform state show    # Show resource details
+terraform import        # Import existing infrastructure
+terraform workspace    # Manage multiple environments
+
+PRODUCTION CONSIDERATIONS:
+=========================
+
+1. STATE MANAGEMENT:
+   - Remote state storage (S3 + DynamoDB)
+   - State locking to prevent conflicts
+   - State file encryption
+
+2. MODULARIZATION:
+   - Reusable modules for common patterns
+   - Version pinning for stability
+   - Input validation with variables
+
+3. CI/CD INTEGRATION:
+   - Automated testing of infrastructure
+   - Gradual rollouts with blue/green deployments
+   - Integration with monitoring systems
+
+WHY THIS MATTERS FOR YOUR RESUME:
+=================================
+- Shows modern DevOps/Infrastructure skills
+- Demonstrates cloud architecture understanding
+- Proves automation and scaling experience
+- Security-conscious infrastructure design
+- Cost optimization awareness
+- Multi-cloud and hybrid cloud capabilities
+- Essential for any serious technology role

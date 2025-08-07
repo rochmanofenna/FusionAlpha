@@ -1,0 +1,184 @@
+# Ansible Inventory for GPU Cluster
+# Defines groups of servers and their configuration
+
+all:
+  vars:
+    # Global variables for all hosts
+    ansible_user: ec2-user
+    ansible_ssh_private_key_file: ~/.ssh/ml-cluster-key.pem
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    
+    # Environment-specific settings
+    environment: "{{ env | default('dev') }}"
+    cluster_name: ml-gpu-cluster
+    
+    # Software versions - centralized management
+    nvidia_driver_version: "525.125.06"
+    cuda_version: "12.0"
+    docker_version: "24.0.7"
+    python_version: "3.11"
+    
+    # Security settings
+    ssh_port: 22
+    firewall_enabled: true
+    selinux_mode: enforcing
+    
+    # Performance tuning
+    enable_performance_tuning: true
+    cpu_governor: performance
+
+children:
+  # GPU compute nodes for ML training
+  gpu_cluster:
+    vars:
+      # GPU-specific configuration
+      gpu_memory_fraction: 0.9
+      cuda_visible_devices: "0,1,2,3"
+      nvidia_persistence_mode: true
+      
+      # ML framework settings
+      pytorch_cuda_arch_list: "7.5;8.0;8.6"
+      tensorflow_gpu_memory_growth: true
+      
+      # Data and checkpoint paths
+      data_mount_point: /data
+      checkpoint_dir: /data/checkpoints
+      dataset_dir: /data/datasets
+      
+    hosts:
+      # Production GPU nodes
+      gpu-node-01:
+        ansible_host: 10.0.1.10
+        gpu_type: "V100"
+        gpu_count: 8
+        instance_type: "p3.16xlarge"
+        role: "primary_trainer"
+        
+      gpu-node-02:
+        ansible_host: 10.0.1.11
+        gpu_type: "V100"
+        gpu_count: 8
+        instance_type: "p3.16xlarge"
+        role: "secondary_trainer"
+        
+      gpu-node-03:
+        ansible_host: 10.0.1.12
+        gpu_type: "V100"
+        gpu_count: 1
+        instance_type: "p3.2xlarge"
+        role: "development"
+        
+      # A100 nodes for heavy workloads
+      gpu-node-04:
+        ansible_host: 10.0.1.13
+        gpu_type: "A100"
+        gpu_count: 8
+        instance_type: "p4d.24xlarge"
+        role: "heavy_training"
+        memory_gb: 1152
+        nvme_storage: "8x3.8TB"
+        
+  # Management and monitoring nodes
+  management:
+    vars:
+      # Management-specific settings
+      monitoring_enabled: true
+      log_aggregation: true
+      backup_enabled: true
+      
+    hosts:
+      bastion-host:
+        ansible_host: 10.0.1.5
+        role: "bastion"
+        public_ip: true
+        
+      monitoring-node:
+        ansible_host: 10.0.1.6
+        role: "monitoring"
+        services:
+          - prometheus
+          - grafana
+          - alertmanager
+          - elasticsearch
+          
+      storage-node:
+        ansible_host: 10.0.1.7
+        role: "storage"
+        nfs_exports:
+          - /shared/datasets
+          - /shared/models
+          - /shared/experiments
+
+  # Development and testing environments
+  development:
+    vars:
+      environment: dev
+      resource_limits: true
+      auto_shutdown: true
+      cost_optimization: true
+      
+    hosts:
+      dev-gpu-01:
+        ansible_host: 10.0.2.10
+        gpu_type: "T4"
+        gpu_count: 1
+        instance_type: "g4dn.xlarge"
+        
+      dev-gpu-02:
+        ansible_host: 10.0.2.11
+        gpu_type: "T4"
+        gpu_count: 2
+        instance_type: "g4dn.2xlarge"
+
+  # Staging environment
+  staging:
+    vars:
+      environment: staging
+      backup_frequency: daily
+      monitoring_retention: 30
+      
+    hosts:
+      staging-gpu-01:
+        ansible_host: 10.0.3.10
+        gpu_type: "V100"
+        gpu_count: 4
+        instance_type: "p3.8xlarge"
+
+# Host groups for specific roles
+primary_trainers:
+  hosts:
+    gpu-node-01:
+    gpu-node-02:
+    gpu-node-04:
+
+development_nodes:
+  hosts:
+    gpu-node-03:
+    dev-gpu-01:
+    dev-gpu-02:
+
+high_memory_nodes:
+  hosts:
+    gpu-node-04:
+  vars:
+    memory_optimization: true
+    large_model_support: true
+
+# Regional groupings
+us_west_2a:
+  hosts:
+    gpu-node-01:
+    gpu-node-02:
+    monitoring-node:
+
+us_west_2b:
+  hosts:
+    gpu-node-03:
+    gpu-node-04:
+    storage-node:
+
+us_west_2c:
+  hosts:
+    bastion-host:
+    dev-gpu-01:
+    dev-gpu-02:

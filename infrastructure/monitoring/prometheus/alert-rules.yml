@@ -1,0 +1,326 @@
+# Prometheus Alerting Rules for ML GPU Cluster
+# Comprehensive alerting for high-performance computing workloads
+
+groups:
+  # GPU Hardware Alerts
+  - name: gpu-hardware
+    interval: 30s
+    rules:
+      - alert: GPUHighTemperature
+        expr: DCGM_FI_DEV_GPU_TEMP > 85
+        for: 2m
+        labels:
+          severity: warning
+          component: gpu
+        annotations:
+          summary: "GPU temperature is critically high on {{ $labels.instance }}"
+          description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} has been running at {{ $value }}°C for more than 2 minutes"
+          runbook_url: "https://runbooks.ml-cluster.internal/gpu-overheating"
+
+      - alert: GPUMemoryHigh
+        expr: (DCGM_FI_DEV_FB_USED / DCGM_FI_DEV_FB_TOTAL) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          component: gpu
+        annotations:
+          summary: "GPU memory usage is critically high on {{ $labels.instance }}"
+          description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: GPUDown
+        expr: up{job="dcgm-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: gpu
+        annotations:
+          summary: "GPU monitoring is down on {{ $labels.instance }}"
+          description: "DCGM exporter on {{ $labels.instance }} has been down for more than 1 minute"
+
+      - alert: GPUPowerThrottling
+        expr: DCGM_FI_DEV_POWER_VIOLATION > 0
+        for: 1m
+        labels:
+          severity: warning
+          component: gpu
+        annotations:
+          summary: "GPU power throttling detected on {{ $labels.instance }}"
+          description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} is experiencing power throttling"
+
+      - alert: GPUMemoryErrors
+        expr: increase(DCGM_FI_DEV_MEMORY_TEMP[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          component: gpu
+        annotations:
+          summary: "GPU memory errors detected on {{ $labels.instance }}"
+          description: "GPU {{ $labels.gpu }} on {{ $labels.instance }} has {{ $value }} memory errors in the last 5 minutes"
+
+  # System Resource Alerts
+  - name: system-resources
+    interval: 30s
+    rules:
+      - alert: HighCPUUsage
+        expr: (100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 90
+        for: 5m
+        labels:
+          severity: warning
+          component: cpu
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage has been above 90% for more than 5 minutes on {{ $labels.instance }}"
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          component: memory
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      - alert: DiskSpaceRunningOut
+        expr: (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          component: disk
+        annotations:
+          summary: "Disk space running out on {{ $labels.instance }}"
+          description: "Filesystem {{ $labels.mountpoint }} has only {{ $value | humanizePercentage }} space left on {{ $labels.instance }}"
+
+      - alert: HighDiskIOWait
+        expr: irate(node_cpu_seconds_total{mode="iowait"}[5m]) * 100 > 20
+        for: 5m
+        labels:
+          severity: warning
+          component: disk
+        annotations:
+          summary: "High disk I/O wait on {{ $labels.instance }}"
+          description: "Disk I/O wait time is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      - alert: NetworkErrors
+        expr: increase(node_network_receive_errs_total[5m]) > 10 or increase(node_network_transmit_errs_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          component: network
+        annotations:
+          summary: "Network errors detected on {{ $labels.instance }}"
+          description: "Network interface {{ $labels.device }} on {{ $labels.instance }} has {{ $value }} errors in the last 5 minutes"
+
+  # ML Service Alerts
+  - name: ml-services
+    interval: 30s
+    rules:
+      - alert: BICEPServiceDown
+        expr: up{job="bicep-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: bicep
+        annotations:
+          summary: "BICEP service is down on {{ $labels.instance }}"
+          description: "BICEP Monte Carlo service has been down for more than 1 minute on {{ $labels.instance }}"
+
+      - alert: ENNServiceDown
+        expr: up{job="enn-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: enn
+        annotations:
+          summary: "ENN service is down on {{ $labels.instance }}"
+          description: "ENN training service has been down for more than 1 minute on {{ $labels.instance }}"
+
+      - alert: BICEPHighLatency
+        expr: bicep_simulation_duration_seconds > 10
+        for: 2m
+        labels:
+          severity: warning
+          component: bicep
+        annotations:
+          summary: "BICEP simulation latency is high on {{ $labels.instance }}"
+          description: "BICEP simulation taking {{ $value }}s on {{ $labels.instance }}, expected < 10s"
+
+      - alert: ENNTrainingStalled
+        expr: increase(enn_epochs_completed_total[10m]) == 0 and enn_training_active == 1
+        for: 10m
+        labels:
+          severity: warning
+          component: enn
+        annotations:
+          summary: "ENN training appears stalled on {{ $labels.instance }}"
+          description: "No training progress detected for 10 minutes on {{ $labels.instance }}"
+
+      - alert: ENNLossNotDecreasing
+        expr: increase(enn_training_loss[30m]) > 0
+        for: 30m
+        labels:
+          severity: warning
+          component: enn
+        annotations:
+          summary: "ENN training loss not decreasing on {{ $labels.instance }}"
+          description: "Training loss has not decreased in 30 minutes on {{ $labels.instance }}"
+
+  # Container and Docker Alerts
+  - name: containers
+    interval: 30s
+    rules:
+      - alert: ContainerKilled
+        expr: time() - container_last_seen > 60
+        for: 0m
+        labels:
+          severity: warning
+          component: docker
+        annotations:
+          summary: "Container killed on {{ $labels.instance }}"
+          description: "Container {{ $labels.name }} has disappeared from {{ $labels.instance }}"
+
+      - alert: ContainerHighCPU
+        expr: (rate(container_cpu_usage_seconds_total{name!=""}[5m]) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: docker
+        annotations:
+          summary: "Container high CPU usage on {{ $labels.instance }}"
+          description: "Container {{ $labels.name }} CPU usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      - alert: ContainerHighMemory
+        expr: (container_memory_usage_bytes{name!=""} / container_spec_memory_limit_bytes{name!=""}) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          component: docker
+        annotations:
+          summary: "Container high memory usage on {{ $labels.instance }}"
+          description: "Container {{ $labels.name }} memory usage is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+  # Training Performance Alerts
+  - name: training-performance
+    interval: 60s
+    rules:
+      - alert: LowGPUUtilization
+        expr: avg_over_time(DCGM_FI_DEV_GPU_UTIL[10m]) < 50 and on(instance) enn_training_active == 1
+        for: 10m
+        labels:
+          severity: warning
+          component: training
+        annotations:
+          summary: "Low GPU utilization during training on {{ $labels.instance }}"
+          description: "GPU utilization is only {{ $value }}% during active training on {{ $labels.instance }}"
+
+      - alert: BatchSizeSuboptimal
+        expr: enn_batch_size < 32 and on(instance) DCGM_FI_DEV_FB_USED / DCGM_FI_DEV_FB_TOTAL < 0.7
+        for: 5m
+        labels:
+          severity: info
+          component: training
+        annotations:
+          summary: "Potentially suboptimal batch size on {{ $labels.instance }}"
+          description: "Batch size is {{ $value }} but GPU memory usage is low - consider increasing batch size"
+
+      - alert: TrainingJobStuck
+        expr: changes(enn_training_step[30m]) == 0 and enn_training_active == 1
+        for: 30m
+        labels:
+          severity: critical
+          component: training
+        annotations:
+          summary: "Training job appears stuck on {{ $labels.instance }}"
+          description: "Training step count hasn't changed in 30 minutes on {{ $labels.instance }}"
+
+  # Data Pipeline Alerts
+  - name: data-pipeline
+    interval: 60s
+    rules:
+      - alert: DataLoadingBottleneck
+        expr: enn_data_loading_time_seconds > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: data
+        annotations:
+          summary: "Data loading bottleneck detected on {{ $labels.instance }}"
+          description: "Data loading taking {{ $value }}s per batch on {{ $labels.instance }}"
+
+      - alert: DatasetCorruption
+        expr: increase(enn_data_errors_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          component: data
+        annotations:
+          summary: "Dataset corruption detected on {{ $labels.instance }}"
+          description: "{{ $value }} data errors detected in the last 5 minutes on {{ $labels.instance }}"
+
+  # Financial/Trading Specific Alerts
+  - name: trading-systems
+    interval: 15s
+    rules:
+      - alert: MarketDataLatency
+        expr: bicep_market_data_latency_ms > 10
+        for: 1m
+        labels:
+          severity: critical
+          component: trading
+        annotations:
+          summary: "High market data latency on {{ $labels.instance }}"
+          description: "Market data latency is {{ $value }}ms on {{ $labels.instance }}, exceeding 10ms threshold"
+
+      - alert: RiskCalculationDelay
+        expr: bicep_risk_calculation_duration_seconds > 1
+        for: 30s
+        labels:
+          severity: warning
+          component: risk
+        annotations:
+          summary: "Risk calculation delay on {{ $labels.instance }}"
+          description: "Risk calculation taking {{ $value }}s on {{ $labels.instance }}, expected < 1s"
+
+      - alert: PortfolioValueAnomaly
+        expr: abs(rate(trading_portfolio_value[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          component: trading
+        annotations:
+          summary: "Unusual portfolio value change on {{ $labels.instance }}"
+          description: "Portfolio value changing at {{ $value | humanizePercentage }} per minute on {{ $labels.instance }}"
+
+  # Security and Compliance Alerts
+  - name: security
+    interval: 60s
+    rules:
+      - alert: UnauthorizedAccess
+        expr: increase(node_auth_failures_total[5m]) > 5
+        for: 0m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "Multiple authentication failures on {{ $labels.instance }}"
+          description: "{{ $value }} authentication failures in the last 5 minutes on {{ $labels.instance }}"
+
+      - alert: SuspiciousNetworkActivity
+        expr: rate(node_network_receive_bytes_total[5m]) > 100000000  # 100MB/s
+        for: 5m
+        labels:
+          severity: warning  
+          component: security
+        annotations:
+          summary: "High network activity on {{ $labels.instance }}"
+          description: "Network receive rate is {{ $value | humanize1024 }}/s on {{ $labels.instance }}"
+
+      - alert: ConfigurationDrift
+        expr: changes(node_boot_time_seconds[24h]) > 0
+        for: 0m
+        labels:
+          severity: info
+          component: security
+        annotations:
+          summary: "System reboot detected on {{ $labels.instance }}"
+          description: "System {{ $labels.instance }} has been rebooted - verify configuration"

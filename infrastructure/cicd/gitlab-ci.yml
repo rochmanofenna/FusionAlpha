@@ -1,0 +1,582 @@
+# GitLab CI/CD Pipeline for ML GPU Cluster Infrastructure
+# Comprehensive DevOps automation for BICEP/ENN deployment
+
+variables:
+  # Docker configuration
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  
+  # Terraform configuration
+  TF_ROOT: infrastructure/terraform/gpu-cluster
+  TF_STATE_NAME: gpu-cluster
+  
+  # Ansible configuration
+  ANSIBLE_HOST_KEY_CHECKING: "False"
+  ANSIBLE_CONFIG: infrastructure/ansible/ansible.cfg
+  
+  # AWS configuration
+  AWS_DEFAULT_REGION: us-west-2
+  
+  # Application versions
+  BICEP_VERSION: "1.2.3"
+  ENN_VERSION: "2.1.0"
+
+# Pipeline stages
+stages:
+  - validate
+  - security-scan
+  - build
+  - test
+  - infrastructure-plan
+  - infrastructure-deploy
+  - configure
+  - deploy-apps
+  - integration-test
+  - performance-test
+  - cleanup
+
+# Global before_script
+before_script:
+  - export DEBIAN_FRONTEND=noninteractive
+  - apt-get update -qq && apt-get install -y -qq git curl unzip
+
+# ================================
+# VALIDATION STAGE
+# ================================
+
+terraform-validate:
+  stage: validate
+  image: hashicorp/terraform:1.6.6
+  before_script:
+    - cd $TF_ROOT
+    - terraform --version
+  script:
+    - terraform fmt -check -recursive
+    - terraform init -backend=false
+    - terraform validate
+  rules:
+    - changes:
+      - infrastructure/terraform/**/*
+
+ansible-lint:
+  stage: validate
+  image: quay.io/ansible/ansible-runner:latest
+  before_script:
+    - pip install ansible-lint yamllint
+  script:
+    - ansible-lint infrastructure/ansible/gpu-cluster-setup.yml
+    - yamllint infrastructure/ansible/
+  rules:
+    - changes:
+      - infrastructure/ansible/**/*
+
+prometheus-config-validate:
+  stage: validate
+  image: prom/prometheus:latest
+  script:
+    - promtool check config infrastructure/monitoring/prometheus/prometheus.yml
+    - promtool check rules infrastructure/monitoring/prometheus/alert-rules.yml
+  rules:
+    - changes:
+      - infrastructure/monitoring/**/*
+
+yaml-lint:
+  stage: validate
+  image: python:3.11-slim
+  before_script:
+    - pip install yamllint
+  script:
+    - yamllint .
+  allow_failure: true
+
+# ================================
+# SECURITY SCANNING
+# ================================
+
+terraform-security-scan:
+  stage: security-scan
+  image: bridgecrew/checkov:latest
+  script:
+    - checkov -d infrastructure/terraform/ --framework terraform
+    - checkov -d infrastructure/terraform/ --framework dockerfile
+  allow_failure: true
+  artifacts:
+    reports:
+      junit: checkov-report.xml
+
+secret-detection:
+  stage: security-scan
+  image: registry.gitlab.com/gitlab-org/security-products/analyzers/secrets:latest
+  script:
+    - /analyzer run
+  artifacts:
+    reports:
+      secret_detection: gl-secret-detection-report.json
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+container-scanning:
+  stage: security-scan
+  image: registry.gitlab.com/gitlab-org/security-products/analyzers/container-scanning:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t ml-gpu-cluster:$CI_COMMIT_SHA .
+    - docker save ml-gpu-cluster:$CI_COMMIT_SHA | /analyzer analyze
+  artifacts:
+    reports:
+      container_scanning: gl-container-scanning-report.json
+  only:
+    changes:
+      - Dockerfile
+      - requirements.txt
+
+# ================================
+# BUILD STAGE
+# ================================
+
+build-bicep-image:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - cd BICEP/
+    - docker build -t $CI_REGISTRY_IMAGE/bicep:$BICEP_VERSION .
+    - docker build -t $CI_REGISTRY_IMAGE/bicep:latest .
+    - docker push $CI_REGISTRY_IMAGE/bicep:$BICEP_VERSION
+    - docker push $CI_REGISTRY_IMAGE/bicep:latest
+  rules:
+    - changes:
+      - BICEP/**/*
+    - if: $CI_COMMIT_BRANCH == "main"
+
+build-enn-image:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - cd ENN/
+    - docker build -t $CI_REGISTRY_IMAGE/enn:$ENN_VERSION .
+    - docker build -t $CI_REGISTRY_IMAGE/enn:latest .
+    - docker push $CI_REGISTRY_IMAGE/enn:$ENN_VERSION
+    - docker push $CI_REGISTRY_IMAGE/enn:latest
+  rules:
+    - changes:
+      - ENN/**/*
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ================================
+# TESTING STAGE
+# ================================
+
+unit-tests-bicep:
+  stage: test
+  image: python:3.11
+  before_script:
+    - cd BICEP/
+    - pip install -r requirements.txt
+    - pip install pytest pytest-cov pytest-xdist
+  script:
+    - python -m pytest tests/ -v --cov=src/ --cov-report=xml --cov-report=html
+    - coverage report --fail-under=80
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: BICEP/coverage.xml
+    paths:
+      - BICEP/htmlcov/
+    expire_in: 1 week
+  rules:
+    - changes:
+      - BICEP/**/*
+
+unit-tests-enn:
+  stage: test
+  image: python:3.11
+  before_script:
+    - cd ENN/
+    - pip install -r requirements.txt
+    - pip install pytest pytest-cov pytest-xdist
+  script:
+    - python -m pytest tests/ -v --cov=enn/ --cov-report=xml --cov-report=html
+    - coverage report --fail-under=85
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: ENN/coverage.xml
+    paths:
+      - ENN/htmlcov/
+    expire_in: 1 week
+  rules:
+    - changes:
+      - ENN/**/*
+
+gesture-recognition-tests:
+  stage: test
+  image: python:3.11
+  before_script:
+    - cd GestureRecognition/
+    - pip install -r requirements.txt
+    - pip install pytest pytest-cov
+  script:
+    - python -m pytest tests/ -v --cov=src/ --cov-report=xml
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: GestureRecognition/coverage.xml
+  rules:
+    - changes:
+      - GestureRecognition/**/*
+
+# ================================
+# INFRASTRUCTURE PLANNING
+# ================================
+
+terraform-plan-dev:
+  stage: infrastructure-plan
+  image: hashicorp/terraform:1.6.6
+  before_script:
+    - cd $TF_ROOT
+    - terraform init
+  script:
+    - terraform plan -var="environment=dev" -out=dev.tfplan
+    - terraform show -no-color dev.tfplan > dev-plan.txt
+  artifacts:
+    paths:
+      - $TF_ROOT/dev.tfplan
+      - $TF_ROOT/dev-plan.txt
+    expire_in: 1 week
+  environment:
+    name: development
+    action: prepare
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+    - changes:
+      - infrastructure/terraform/**/*
+
+terraform-plan-prod:
+  stage: infrastructure-plan
+  image: hashicorp/terraform:1.6.6
+  before_script:
+    - cd $TF_ROOT
+    - terraform init
+  script:
+    - terraform plan -var="environment=prod" -out=prod.tfplan
+    - terraform show -no-color prod.tfplan > prod-plan.txt
+  artifacts:
+    paths:
+      - $TF_ROOT/prod.tfplan
+      - $TF_ROOT/prod-plan.txt
+    expire_in: 1 week
+  environment:
+    name: production
+    action: prepare
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - changes:
+      - infrastructure/terraform/**/*
+
+# ================================
+# INFRASTRUCTURE DEPLOYMENT
+# ================================
+
+terraform-apply-dev:
+  stage: infrastructure-deploy
+  image: hashicorp/terraform:1.6.6
+  before_script:
+    - cd $TF_ROOT
+    - terraform init
+  script:
+    - terraform apply -auto-approve dev.tfplan
+    - terraform output -json > ../../../dev-outputs.json
+  artifacts:
+    paths:
+      - dev-outputs.json
+    expire_in: 1 week
+  environment:
+    name: development
+    action: start
+    url: https://dev.ml-cluster.internal
+  dependencies:
+    - terraform-plan-dev
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: manual
+    - changes:
+      - infrastructure/terraform/**/*
+      when: manual
+
+terraform-apply-prod:
+  stage: infrastructure-deploy
+  image: hashicorp/terraform:1.6.6
+  before_script:
+    - cd $TF_ROOT
+    - terraform init
+  script:
+    - terraform apply -auto-approve prod.tfplan
+    - terraform output -json > ../../../prod-outputs.json
+  artifacts:
+    paths:
+      - prod-outputs.json
+    expire_in: 1 week
+  environment:
+    name: production
+    action: start
+    url: https://ml-cluster.internal
+  dependencies:
+    - terraform-plan-prod
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+    - changes:
+      - infrastructure/terraform/**/*
+      when: manual
+
+# ================================
+# CONFIGURATION MANAGEMENT
+# ================================
+
+ansible-configure-dev:
+  stage: configure
+  image: quay.io/ansible/ansible-runner:latest
+  before_script:
+    - pip install boto3 botocore
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+  script:
+    - cd infrastructure/ansible/
+    - ansible-playbook -i inventory/gpu-cluster.yml gpu-cluster-setup.yml 
+      --extra-vars "environment=dev" 
+      --limit development
+  environment:
+    name: development
+  dependencies:
+    - terraform-apply-dev
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: manual
+
+ansible-configure-prod:
+  stage: configure
+  image: quay.io/ansible/ansible-runner:latest
+  before_script:
+    - pip install boto3 botocore
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+  script:
+    - cd infrastructure/ansible/
+    - ansible-playbook -i inventory/gpu-cluster.yml gpu-cluster-setup.yml 
+      --extra-vars "environment=prod" 
+      --limit gpu_cluster
+  environment:
+    name: production
+  dependencies:
+    - terraform-apply-prod
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+
+# ================================
+# APPLICATION DEPLOYMENT
+# ================================
+
+deploy-bicep-service:
+  stage: deploy-apps
+  image: quay.io/ansible/ansible-runner:latest
+  before_script:
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+  script:
+    - cd infrastructure/ansible/
+    - ansible-playbook -i inventory/gpu-cluster.yml deploy-bicep.yml
+      --extra-vars "bicep_version=$BICEP_VERSION"
+      --extra-vars "registry_url=$CI_REGISTRY_IMAGE"
+  environment:
+    name: production
+  dependencies:
+    - build-bicep-image
+    - ansible-configure-prod
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+
+deploy-enn-service:
+  stage: deploy-apps
+  image: quay.io/ansible/ansible-runner:latest
+  before_script:
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+  script:
+    - cd infrastructure/ansible/
+    - ansible-playbook -i inventory/gpu-cluster.yml deploy-enn.yml
+      --extra-vars "enn_version=$ENN_VERSION"
+      --extra-vars "registry_url=$CI_REGISTRY_IMAGE"
+  environment:
+    name: production
+  dependencies:
+    - build-enn-image
+    - ansible-configure-prod
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+
+# ================================
+# INTEGRATION TESTING
+# ================================
+
+integration-test-gpu-cluster:
+  stage: integration-test
+  image: python:3.11
+  before_script:
+    - pip install requests pytest
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa
+  script:
+    - python tests/integration/test_gpu_cluster.py
+    - python tests/integration/test_bicep_service.py
+    - python tests/integration/test_enn_service.py
+  artifacts:
+    reports:
+      junit: integration-test-results.xml
+  environment:
+    name: production
+  dependencies:
+    - deploy-bicep-service
+    - deploy-enn-service
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+api-integration-tests:
+  stage: integration-test
+  image: postman/newman:alpine
+  script:
+    - newman run tests/postman/ML-API-Tests.postman_collection.json
+      --environment tests/postman/Production.postman_environment.json
+      --reporters cli,junit --reporter-junit-export newman-results.xml
+  artifacts:
+    reports:
+      junit: newman-results.xml
+  environment:
+    name: production
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ================================
+# PERFORMANCE TESTING
+# ================================
+
+load-test-bicep:
+  stage: performance-test
+  image: loadimpact/k6:latest
+  script:
+    - k6 run --out json=bicep-performance.json tests/performance/bicep-load-test.js
+  artifacts:
+    paths:
+      - bicep-performance.json
+    expire_in: 1 week
+  environment:
+    name: production
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+
+gpu-benchmark:
+  stage: performance-test
+  image: python:3.11
+  before_script:
+    - pip install torch torchvision
+  script:
+    - python tests/performance/gpu_benchmark.py
+    - python tests/performance/enn_training_benchmark.py
+  artifacts:
+    paths:
+      - gpu-benchmark-results.json
+      - enn-training-results.json
+    expire_in: 1 week
+  environment:
+    name: production
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+
+# ================================
+# CLEANUP AND NOTIFICATIONS
+# ================================
+
+terraform-destroy-dev:
+  stage: cleanup
+  image: hashicorp/terraform:1.6.6
+  before_script:
+    - cd $TF_ROOT
+    - terraform init
+  script:
+    - terraform destroy -auto-approve -var="environment=dev"
+  environment:
+    name: development
+    action: stop
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+      when: manual
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+
+notify-slack:
+  stage: cleanup
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl
+  script:
+    - |
+      curl -X POST -H 'Content-type: application/json' \
+      --data '{"text":"🚀 ML GPU Cluster Pipeline Completed!\nBranch: '"$CI_COMMIT_BRANCH"'\nCommit: '"$CI_COMMIT_SHA"'\nStatus: '"$CI_PIPELINE_STATUS"'"}' \
+      $SLACK_WEBHOOK_URL
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: always
+
+# ================================
+# SCHEDULED JOBS
+# ================================
+
+nightly-security-scan:
+  extends: terraform-security-scan
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+
+weekly-dependency-update:
+  stage: validate
+  image: python:3.11
+  script:
+    - pip install pip-tools
+    - pip-compile --upgrade requirements.in
+    - pip-compile --upgrade dev-requirements.in
+  artifacts:
+    paths:
+      - requirements.txt
+      - dev-requirements.txt
+    expire_in: 1 week
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+
+backup-terraform-state:
+  stage: cleanup
+  image: amazon/aws-cli:latest
+  script:
+    - aws s3 cp terraform.tfstate s3://ml-infrastructure-backups/terraform/$(date +%Y-%m-%d)/
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
