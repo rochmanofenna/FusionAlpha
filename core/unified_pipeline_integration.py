@@ -31,11 +31,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from backends.bicep_integration import UnderhypeBICEPSimulator
 from enn.bicep_adapter import BICEPDimensionAdapter, CleanBICEPLayer
 from enn.model import ENNModelWithSparsityControl
-from enn.config import ENNConfig
-from fusion_alpha.models.contradiction_graph import ContradictionGraphEncoder
+from enn.config import Config as ENNConfig
+from fusion_alpha.models.contradiction_graph import ContradictionGNN
 from fusion_alpha.models.fusionnet import FusionNet
 from fusion_alpha.pipelines.contradiction_engine import ContradictionEngine
-from models.finbert_processor import FinBERTProcessor
+from fusion_alpha.models.real_finbert import RealFinBERTProcessor
 from core.underhype_engine import UnderhypeEngine
 
 logger = logging.getLogger(__name__)
@@ -164,7 +164,7 @@ class UnifiedPipelineIntegration:
         # 3. Graph Encoder
         if self.config.get('enable_graph', True):
             try:
-                self.graph_encoder = ContradictionGraphEncoder(
+                self.graph_encoder = ContradictionGNN(
                     node_dim=self.config['graph']['node_dim'],
                     edge_dim=self.config['graph']['edge_dim'],
                     hidden_dim=self.config['graph']['hidden_dim'],
@@ -180,7 +180,7 @@ class UnifiedPipelineIntegration:
         
         # 4. FinBERT Processor
         try:
-            self.finbert_processor = FinBERTProcessor()
+            self.finbert_processor = RealFinBERTProcessor()
             logger.info("✅ FinBERT processor initialized")
         except Exception as e:
             logger.warning(f"⚠️ FinBERT initialization failed: {e}")
@@ -190,8 +190,7 @@ class UnifiedPipelineIntegration:
         self.contradiction_engine = ContradictionEngine()
         self.fusion_net = FusionNet(
             input_dim=768 + 10,  # FinBERT + technical features
-            hidden_dim=256,
-            num_experts=3
+            hidden_dim=256
         ).to(self.device)
         
         # 6. Underhype Engine

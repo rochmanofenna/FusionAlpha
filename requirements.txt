@@ -48,7 +48,7 @@ pytest-cov==4.1.0
 # Utilities
 python-dotenv==1.0.0
 pydantic==2.0.3
-typing-extensions==4.7.1
+typing-extensions>=4.8.0
 
 # CUDA support (optional, for GPU acceleration)
 # Uncomment if using NVIDIA GPU

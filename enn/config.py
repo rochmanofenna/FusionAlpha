@@ -1,3 +1,5 @@
+import torch
+
 class Config:
     num_layers = 3
     num_neurons = 10
