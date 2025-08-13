@@ -22,9 +22,10 @@ def get_finbert_cls_embedding(text: str) -> np.ndarray:
     inputs = finbert_tokenizer(text, return_tensors="pt", truncation=True, padding=True)
     with torch.no_grad():
         outputs = finbert_model(**inputs)
-    # Return the CLS token embedding (first token) as a numpy array.
-    cls_embedding = outputs.last_hidden_state[:, 0, :].squeeze().cpu().numpy()
-    return cls_embedding
+    # Return the CLS token embedding (first token) as a tensor (keep on GPU for speed).
+    # TODO: Refactor to avoid .cpu().numpy() in live path for better latency
+    cls_embedding = outputs.last_hidden_state[:, 0, :].squeeze().detach()
+    return cls_embedding  # Return tensor instead of numpy array
 
 def get_live_headlines(ticker: str) -> list:
     # Attempt to fetch live news headlines from Yahoo Finance RSS feed

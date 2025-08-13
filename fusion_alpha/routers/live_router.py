@@ -14,8 +14,8 @@ import argparse
 import ast
 import numpy as np
 import torch
-from fusionnet import FusionNet
-from contradiction_engine import ContradictionEngine
+from fusion_alpha.models.fusionnet import FusionNet
+from fusion_alpha.pipelines.contradiction_engine import AdaptiveContradictionEngine as ContradictionEngine
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Live router for contradiction-aware trading signal generation.")

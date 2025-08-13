@@ -24,10 +24,10 @@ from torch.utils.data import DataLoader, Dataset, random_split
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-# Add project paths
-sys.path.append('/home/ryan/trading/mismatch-trading')
-sys.path.append('/home/ryan/trading/BICEP/src')
-sys.path.append('/home/ryan/trading/ENN')
+# Add project paths - use relative imports instead
+# sys.path.append('/home/ryan/trading/mismatch-trading')
+# sys.path.append('/home/ryan/trading/BICEP/src')
+# sys.path.append('/home/ryan/trading/ENN')
 
 # Set environment for CPU-only training (no CuPy needed)
 os.environ['DISABLE_CUPY'] = '1'
@@ -287,24 +287,24 @@ class FusionAlphaTrainer:
             self.train_dataset, 
             batch_size=self.config.batch_size, 
             shuffle=True,
-            num_workers=0,  # Use 0 for compatibility
-            pin_memory=False
+            num_workers=8,  # Improved for faster loading
+            pin_memory=True  # Faster GPU transfer
         )
         
         self.val_loader = DataLoader(
             self.val_dataset,
             batch_size=self.config.batch_size,
             shuffle=False,
-            num_workers=0,
-            pin_memory=False
+            num_workers=8,
+            pin_memory=True
         )
         
         self.test_loader = DataLoader(
             self.test_dataset,
             batch_size=self.config.batch_size,
             shuffle=False,
-            num_workers=0,
-            pin_memory=False
+            num_workers=8,
+            pin_memory=True
         )
         
         logger.info(f"Data splits - Train: {len(self.train_dataset)}, Val: {len(self.val_dataset)}, Test: {len(self.test_dataset)}")

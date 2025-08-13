@@ -3,8 +3,8 @@ import numpy as np
 import torch
 import argparse
 import joblib
-from fusionnet import FusionNet
-from contradiction_engine import ContradictionEngine
+from fusion_alpha.models.fusionnet import FusionNet
+from fusion_alpha.pipelines.contradiction_engine import AdaptiveContradictionEngine as ContradictionEngine
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Route test samples to contradiction-specific FusionNet models.")
@@ -87,7 +87,8 @@ def main():
                 pred = model_overhype(tech_input, finbert_input)
             else:
                 pred = model_none(tech_input, finbert_input)
-            predictions.append(pred.cpu().detach().numpy().flatten()[0])
+            # TODO: Avoid .cpu().numpy() in live router for better latency
+            predictions.append(pred.detach().flatten()[0].item())
     
     predictions = np.array(predictions)
     contradiction_tags = np.array(contradiction_tags)

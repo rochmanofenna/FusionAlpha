@@ -24,8 +24,8 @@ import logging
 from dataclasses import dataclass
 import json
 
-# Add parent paths for imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Use proper package imports instead of sys.path hacks
+# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import pipeline components
 from backends.bicep_integration import UnderhypeBICEPSimulator
@@ -313,16 +313,26 @@ class UnifiedPipelineIntegration:
             # Add batch dimension
             input_features = input_features.unsqueeze(0)
             
-            # Process through ENN
-            enn_output = self.enn_model(input_features)
+            # Process through ENN with p_t generation
+            logits, p_t, contradiction_score, diagnostics = self.enn_model(
+                input_features,
+                return_p_t=True,
+                return_diagnostics=False
+            )
             
             # If BICEP adapter available, enhance with BICEP
             if self.bicep_adapter:
                 bicep_enhanced = self.bicep_adapter(input_features)
-                # Combine ENN and BICEP outputs
-                p_t = (enn_output.flatten() + bicep_enhanced.flatten()) / 2
+                # Combine p_t context symbol with BICEP enhancement
+                p_t_enhanced = p_t.flatten() + 0.1 * bicep_enhanced.flatten()
+                p_t = p_t_enhanced
             else:
-                p_t = enn_output.flatten()
+                p_t = p_t.flatten()
+            
+            # Log contradiction info if available
+            if contradiction_score is not None:
+                avg_contradiction = contradiction_score.mean().item()
+                logger.debug(f"ENN contradiction score for {ticker}: {avg_contradiction:.4f}")
             
             return p_t
             

@@ -23,9 +23,9 @@ from pathlib import Path
 import asyncio
 import logging
 
-# Add BICEP and ENN paths for imports
-sys.path.append('/home/ryan/trading/BICEP/src')
-sys.path.append('/home/ryan/trading/ENN')
+# Add BICEP and ENN paths for imports - use package imports instead
+# sys.path.append('/home/ryan/trading/BICEP/src')
+# sys.path.append('/home/ryan/trading/ENN')
 
 # Import our components
 from ..config.integrated_pipeline_config import IntegratedPipelineConfig, get_production_config

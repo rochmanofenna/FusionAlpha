@@ -7,8 +7,8 @@ import torch
 import joblib
 import yfinance as yf
 from datetime import datetime
-from fusionnet import FusionNet
-from contradiction_engine import ContradictionEngine
+from fusion_alpha.models.fusionnet import FusionNet
+from fusion_alpha.pipelines.contradiction_engine import AdaptiveContradictionEngine as ContradictionEngine
 
 # Setup logging.
 logging.basicConfig(
@@ -136,6 +136,9 @@ def place_trade(ticker, signal, contradiction_type):
 # MAIN LIVE TRADING FUNCTION
 # -------------------------
 def run_live_trading():
+    # Setup device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
     # Load the trained model and contradiction engine.
     model = FusionNet(input_dim=10, hidden_dim=512, use_attention=True, fusion_method='concat', target_mode=TARGET_MODE).to(device)
     model.load_state_dict(torch.load(MODEL_PATH, map_location=device))

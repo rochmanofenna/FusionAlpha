@@ -18,10 +18,10 @@ import json
 from datetime import datetime, timedelta
 from typing import Dict, Optional, List
 
-# Ensure current directory is in Python path
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.insert(0, current_dir)
+# Use proper package imports instead of sys.path manipulation
+# current_dir = os.path.dirname(os.path.abspath(__file__))
+# if current_dir not in sys.path:
+#     sys.path.insert(0, current_dir)
 
 # Flask imports
 from flask import Flask, request, jsonify, render_template_string
