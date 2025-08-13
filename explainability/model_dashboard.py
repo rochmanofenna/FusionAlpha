@@ -588,7 +588,7 @@ def create_streamlit_app():
         return
     
     # This would be in a separate file for actual deployment
-    st.title("🧠 Fusion Alpha Model Explainability Dashboard")
+    st.title("Fusion Alpha Model Explainability Dashboard")
     
     st.sidebar.header("Configuration")
     
@@ -641,7 +641,7 @@ def create_streamlit_app():
 
 def main():
     """Test the explainability framework"""
-    print("🔧 Testing Model Explainability Dashboard")
+    print("Testing Model Explainability Dashboard")
     print("="*50)
     
     # Create configuration
@@ -659,7 +659,7 @@ def main():
         dashboard_path = explainer.create_interactive_dashboard()
         
         print(f"\nExplainability analysis completed!")
-        print(f"📊 Analyzed {len(explainer.feature_names)} features")
+        print(f"Analyzed {len(explainer.feature_names)} features")
         print(f"Report generated with {len(report)} sections")
         if dashboard_path:
             print(f"Interactive dashboard: {dashboard_path}")

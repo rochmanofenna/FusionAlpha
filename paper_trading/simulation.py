@@ -697,7 +697,7 @@ class PaperTradingSimulator:
 
 def main():
     """Run paper trading simulation"""
-    print("🔧 Testing Paper Trading Simulation")
+    print("Testing Paper Trading Simulation")
     print("="*50)
     
     # Create configuration
@@ -736,7 +736,7 @@ def main():
         simulator.print_status()
         
         print(f"\nPaper trading simulation completed!")
-        print(f"📊 Trades executed: {len(simulator.trade_log)}")
+        print(f"Trades executed: {len(simulator.trade_log)}")
         print(f"💾 Results saved to: {simulator.output_dir}")
         
     except KeyboardInterrupt:

@@ -17,9 +17,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'BICEP'))
 try:
     from metal_bicep_benchmark import metal_brownian_sde_kernel
     BICEP_AVAILABLE = True
-    print("✅ BICEP Metal kernel available")
+    print("BICEP Metal kernel available")
 except ImportError:
-    print("⚠️ BICEP not available, using mock implementation")
+    print("Warning: BICEP not available, using mock implementation")
     BICEP_AVAILABLE = False
 
 class BICEPDimensionAdapter(nn.Module):
@@ -77,13 +77,13 @@ class BICEPDimensionAdapter(nn.Module):
             # Verify BICEP output shape
             expected_shape = (self.n_paths, self.n_steps + 1)
             if paths.shape != expected_shape:
-                print(f"⚠️ BICEP shape mismatch: got {paths.shape}, expected {expected_shape}")
+                print(f"Warning: BICEP shape mismatch: got {paths.shape}, expected {expected_shape}")
                 return torch.randn(*expected_shape, device=self.device)
             
             return paths
             
         except Exception as e:
-            print(f"⚠️ BICEP generation error: {e}")
+            print(f"Warning: BICEP generation error: {e}")
             # Fallback to mock with correct dimensions
             return torch.randn(self.n_paths, self.n_steps + 1, device=self.device)
     
@@ -252,7 +252,7 @@ def create_bicep_enhanced_enn(enn_config, integration_mode: str = 'adapter'):
 
 def test_clean_adapter():
     """Test the clean adapter approach"""
-    print("🧪 Testing Clean BICEP-ENN Adapter")
+    print("Testing Clean BICEP-ENN Adapter")
     print("=" * 40)
     
     # Test BICEP adapter
@@ -275,22 +275,22 @@ def test_clean_adapter():
     print(f"Expected: [4, 8] - Got: {list(output.shape)}")
     
     if list(output.shape) == [4, 8]:
-        print("✅ Dimension adapter working perfectly!")
+        print("Dimension adapter working correctly!")
     else:
-        print("❌ Dimension mismatch")
+        print("Error: Dimension mismatch")
     
     # Test BICEP layer
-    print(f"\n🔬 Testing CleanBICEPLayer...")
+    print(f"\nTesting CleanBICEPLayer...")
     bicep_layer = CleanBICEPLayer(input_size=5, output_size=8)
     
     layer_output = bicep_layer(test_input)
     print(f"BICEP Layer output: {layer_output.shape}")
     
     if list(layer_output.shape) == [4, 8]:
-        print("✅ Clean BICEP layer working!")
+        print("Clean BICEP layer working!")
         return True
     else:
-        print("❌ Clean BICEP layer failed")
+        print("Error: Clean BICEP layer failed")
         return False
 
 
@@ -298,9 +298,9 @@ if __name__ == "__main__":
     success = test_clean_adapter()
     
     if success:
-        print(f"\n🎉 CLEAN ADAPTER SUCCESS!")
-        print("✅ No dimension mismatches")
-        print("✅ BICEP and ENN systems preserved intact")
-        print("✅ Ready for real BICEP computation")
+        print(f"\nCLEAN ADAPTER SUCCESS!")
+        print("No dimension mismatches")
+        print("BICEP and ENN systems preserved intact")
+        print("Ready for real BICEP computation")
     else:
-        print(f"\n❌ Adapter needs fixes")
+        print(f"\nError: Adapter needs fixes")

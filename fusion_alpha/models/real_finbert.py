@@ -354,7 +354,7 @@ def get_finbert_embeddings(texts: Union[str, List[str]]) -> torch.Tensor:
 
 if __name__ == "__main__":
     # Test the real FinBERT integration
-    print("🔧 Testing Real FinBERT Integration")
+    print("Testing Real FinBERT Integration")
     print("="*50)
     
     # Sample financial texts
@@ -371,7 +371,7 @@ if __name__ == "__main__":
         processor = get_finbert_processor()
         
         # Process sample texts
-        print(f"📊 Processing {len(sample_texts)} financial texts...")
+        print(f"Processing {len(sample_texts)} financial texts...")
         
         start_time = time.time()
         results = processor.process_news_batch(sample_texts)

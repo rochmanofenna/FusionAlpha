@@ -598,7 +598,7 @@ class FreeMarketDataCollector:
 
 def main():
     """Test the free market data collection system"""
-    print("🔧 Testing Free Market Data Collection System")
+    print("Testing Free Market Data Collection System")
     print("="*60)
     
     # Test symbols
@@ -607,7 +607,7 @@ def main():
     # Create collector
     collector = FreeMarketDataCollector()
     
-    print(f"📊 Testing data collection for {test_symbols}")
+    print(f"Testing data collection for {test_symbols}")
     
     # Test Yahoo Finance OHLCV data
     print(f"\n1. Testing Yahoo Finance OHLCV data...")
@@ -625,7 +625,7 @@ def main():
     print(f"   Collected quotes for {len(quotes)} symbols in {time.time() - start_time:.2f}s")
     
     for symbol, quote in quotes.items():
-        print(f"   💹 {symbol}: ${quote.price:.2f} ({quote.change_percent:+.2f}%)")
+        print(f"   {symbol}: ${quote.price:.2f} ({quote.change_percent:+.2f}%)")
     
     # Test fundamentals
     print(f"\n3. Testing fundamental data...")
@@ -664,7 +664,7 @@ def main():
     print(f"   Created dataset: {len(dataset)} rows, {len(dataset.columns)} columns in {time.time() - start_time:.2f}s")
     
     if not dataset.empty:
-        print(f"   📊 Sample columns: {list(dataset.columns)[:10]}...")
+        print(f"   Sample columns: {list(dataset.columns)[:10]}...")
         collector.save_data(dataset, 'sample_trading_dataset')
     
     # Cache statistics

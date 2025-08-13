@@ -516,14 +516,14 @@ class FreeNewsCollector:
 
 def main():
     """Test the free news collection system"""
-    print("🔧 Testing Free News Collection System")
+    print("Testing Free News Collection System")
     print("="*50)
     
     # Create collector
     collector = FreeNewsCollector()
     
     # Collect recent news
-    print("📰 Collecting news from free sources...")
+    print("Collecting news from free sources...")
     
     start_time = time.time()
     articles = collector.collect_all_news()
@@ -536,7 +536,7 @@ def main():
         collector.save_articles(articles)
         
         # Show sample articles
-        print(f"\n📋 Sample Articles:")
+        print(f"\nSample Articles:")
         for i, article in enumerate(articles[:5]):
             print(f"{i+1}. {article.title[:80]}...")
             print(f"   Source: {article.source} | Symbols: {article.symbols}")
@@ -547,7 +547,7 @@ def main():
         if articles[0].symbols:
             symbol = articles[0].symbols[0]
             symbol_news = collector.get_symbol_news(symbol, hours=48)
-            print(f"📊 Found {len(symbol_news)} articles for {symbol}")
+            print(f"Found {len(symbol_news)} articles for {symbol}")
         
         # Summary statistics
         summary = collector.get_news_summary()

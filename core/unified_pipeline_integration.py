@@ -643,7 +643,7 @@ if __name__ == "__main__":
     # Process through pipeline
     signal = pipeline.process_market_data(market_data)
     
-    print(f"📊 Unified Pipeline Output:")
+    print(f"Unified Pipeline Output:")
     print(f"   Ticker: {signal.ticker}")
     print(f"   Signal Type: {signal.signal_type}")
     print(f"   Direction: {signal.direction}")

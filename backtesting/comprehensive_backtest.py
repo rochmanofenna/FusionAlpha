@@ -744,7 +744,7 @@ class ComprehensiveBacktester:
 
 def main():
     """Run a sample backtest"""
-    print("🔧 Testing Comprehensive Backtesting Framework")
+    print("Testing Comprehensive Backtesting Framework")
     print("="*60)
     
     # Create configuration
@@ -766,7 +766,7 @@ def main():
         backtester.print_summary()
         
         print(f"\nBacktest completed successfully!")
-        print(f"📊 Generated {len(backtester.trades)} trades")
+        print(f"Generated {len(backtester.trades)} trades")
         print(f"Performance data: {len(backtester.daily_returns)} periods")
         print(f"💾 Results saved to: {backtester.output_dir}")
         

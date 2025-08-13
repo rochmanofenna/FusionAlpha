@@ -442,7 +442,7 @@ if __name__ == "__main__":
     # Create complete pipeline
     pipeline = CompletePipeline(tech_input_dim=tech_dim, target_mode="normalized")
     
-    print(f"📊 Pipeline created with {sum(p.numel() for p in pipeline.parameters()):,} parameters")
+    print(f"Pipeline created with {sum(p.numel() for p in pipeline.parameters()):,} parameters")
     
     # Forward pass
     with torch.no_grad():

@@ -523,8 +523,8 @@ if __name__ == "__main__":
     monitor = PipelineMonitor()
     monitor.start()
     
-    print("🖥️  Enhanced Pipeline Monitoring Started")
-    print(f"📊 WebSocket updates available at ws://localhost:8765")
+    print("Enhanced Pipeline Monitoring Started")
+    print(f"WebSocket updates available at ws://localhost:8765")
     print("Press Ctrl+C to stop...")
     
     try:
@@ -532,9 +532,9 @@ if __name__ == "__main__":
             # Print dashboard snapshot every 10 seconds
             time.sleep(10)
             data = monitor.get_dashboard_data()
-            print(f"\n📈 Dashboard Update @ {data['timestamp']}")
+            print(f"\nDashboard Update @ {data['timestamp']}")
             print(json.dumps(data['components'], indent=2))
     
     except KeyboardInterrupt:
-        print("\n🛑 Stopping monitor...")
+        print("\nStopping monitor...")
         monitor.stop()

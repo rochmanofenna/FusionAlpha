@@ -574,7 +574,7 @@ jobs:
           icon_emoji: ':robot_face:'
           fields: repo,message,commit,author,action,eventName,ref,workflow
           text: |
-            🚀 ML GPU Cluster Pipeline Completed!
+            ML GPU Cluster Pipeline Completed!
             Environment: Production
             Status: ${{ job.status }}
             Commit: ${{ github.sha }}

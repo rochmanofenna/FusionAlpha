@@ -543,7 +543,7 @@ notify-slack:
   script:
     - |
       curl -X POST -H 'Content-type: application/json' \
-      --data '{"text":"🚀 ML GPU Cluster Pipeline Completed!\nBranch: '"$CI_COMMIT_BRANCH"'\nCommit: '"$CI_COMMIT_SHA"'\nStatus: '"$CI_PIPELINE_STATUS"'"}' \
+      --data '{"text":"ML GPU Cluster Pipeline Completed!\nBranch: '"$CI_COMMIT_BRANCH"'\nCommit: '"$CI_COMMIT_SHA"'\nStatus: '"$CI_PIPELINE_STATUS"'"}' \
       $SLACK_WEBHOOK_URL
   rules:
     - if: $CI_COMMIT_BRANCH == "main"

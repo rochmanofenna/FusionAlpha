@@ -76,7 +76,7 @@ class PipelineMetrics:
     
     def __str__(self) -> str:
         return f"""
-📊 Pipeline Performance Metrics
+Pipeline Performance Metrics
 Total Latency: {self.total_latency:.2f}ms (Target: <25ms)
   ├─ BICEP: {self.bicep_latency:.2f}ms  
   ├─ ENN: {self.enn_latency:.2f}ms
@@ -89,7 +89,7 @@ Graph Connectivity: {self.graph_connectivity_score:.3f}
 Push-out Stability: {self.pushout_symbol_stability:.3f}
 Prediction Confidence: {self.prediction_confidence:.3f}
 
-🔬 Category Theory Validation  
+Category Theory Validation  
 Axiom Violations: {self.axiom_violations}
 Reversibility: {self.reversibility_score:.3f}
 Minimality: {self.minimality_score:.3f}
@@ -621,7 +621,7 @@ if __name__ == "__main__":
     price_movements = torch.randn(batch_size) * 0.03  # ±3% movements
     sentiment_scores = torch.randn(batch_size) * 0.6  # ±0.6 sentiment
     
-    print(f"📊 Processing batch of {batch_size} samples...")
+    print(f"Processing batch of {batch_size} samples...")
     
     # Forward pass through complete pipeline
     start_time = time.perf_counter()

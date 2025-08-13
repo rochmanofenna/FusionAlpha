@@ -10,23 +10,23 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-echo "🔍 Infrastructure Portfolio Validation Script"
+echo "Infrastructure Portfolio Validation Script"
 echo "============================================"
 echo ""
 
 # Check if running in correct directory
 if [ ! -d "infrastructure" ]; then
-    echo -e "${RED}❌ Error: Must run from /home/ryan/SHOWCASE directory${NC}"
+    echo -e "${RED}Error: Must run from /home/ryan/SHOWCASE directory${NC}"
     exit 1
 fi
 
 # Function to check if command exists
 check_command() {
     if command -v $1 &> /dev/null; then
-        echo -e "${GREEN}✅ $1 is installed${NC}"
+        echo -e "${GREEN}$1 is installed${NC}"
         return 0
     else
-        echo -e "${YELLOW}⚠️  $1 is not installed (optional for validation)${NC}"
+        echo -e "${YELLOW}Warning: $1 is not installed (optional for validation)${NC}"
         return 1
     fi
 }
@@ -38,14 +38,14 @@ validate_files() {
     local files=("$@")
     
     echo ""
-    echo "📁 Validating $category files:"
+    echo "Validating $category files:"
     
     local all_exist=true
     for file in "${files[@]}"; do
         if [ -f "$file" ]; then
-            echo -e "  ${GREEN}✅ $file exists${NC}"
+            echo -e "  ${GREEN}$file exists${NC}"
         else
-            echo -e "  ${RED}❌ $file missing${NC}"
+            echo -e "  ${RED}$file missing${NC}"
             all_exist=false
         fi
     done
@@ -56,7 +56,7 @@ validate_files() {
 }
 
 # Check dependencies
-echo "🔧 Checking optional tools:"
+echo "Checking optional tools:"
 check_command terraform
 check_command ansible
 check_command docker
@@ -70,12 +70,12 @@ validate_files "SystemD" \
 
 # Basic SystemD validation (works without sudo)
 echo ""
-echo "🔍 SystemD Syntax Check:"
+echo "SystemD Syntax Check:"
 for service in infrastructure/rhel-configs/*.service; do
     if grep -q "^\[Unit\]" "$service" && grep -q "^\[Service\]" "$service" && grep -q "^\[Install\]" "$service"; then
-        echo -e "  ${GREEN}✅ $(basename $service) has valid structure${NC}"
+        echo -e "  ${GREEN}$(basename $service) has valid structure${NC}"
     else
-        echo -e "  ${RED}❌ $(basename $service) missing required sections${NC}"
+        echo -e "  ${RED}$(basename $service) missing required sections${NC}"
     fi
 done
 
@@ -88,14 +88,14 @@ validate_files "Terraform" \
 # Basic Terraform validation (if installed)
 if command -v terraform &> /dev/null; then
     echo ""
-    echo "🔍 Terraform Validation:"
+    echo "Terraform Validation:"
     cd infrastructure/terraform/gpu-cluster
     if terraform init -backend=false &> /dev/null; then
-        echo -e "  ${GREEN}✅ Terraform init successful${NC}"
+        echo -e "  ${GREEN}Terraform init successful${NC}"
         if terraform validate &> /dev/null; then
-            echo -e "  ${GREEN}✅ Terraform configuration is valid${NC}"
+            echo -e "  ${GREEN}Terraform configuration is valid${NC}"
         else
-            echo -e "  ${RED}❌ Terraform validation failed${NC}"
+            echo -e "  ${RED}Terraform validation failed${NC}"
         fi
     fi
     cd ../../..
@@ -109,11 +109,11 @@ validate_files "Ansible" \
 # Basic Ansible validation (if installed)
 if command -v ansible &> /dev/null; then
     echo ""
-    echo "🔍 Ansible Validation:"
+    echo "Ansible Validation:"
     if ansible-playbook infrastructure/ansible/gpu-cluster-setup.yml --syntax-check &> /dev/null; then
-        echo -e "  ${GREEN}✅ Ansible playbook syntax is valid${NC}"
+        echo -e "  ${GREEN}Ansible playbook syntax is valid${NC}"
     else
-        echo -e "  ${RED}❌ Ansible syntax check failed${NC}"
+        echo -e "  ${RED}Ansible syntax check failed${NC}"
     fi
 fi
 
@@ -133,9 +133,9 @@ validate_files "DevOps Automation" \
 
 # Check if deployment script is executable
 if [ -x "infrastructure/devops-automation/deployment-scripts.sh" ]; then
-    echo -e "  ${GREEN}✅ Deployment script is executable${NC}"
+    echo -e "  ${GREEN}Deployment script is executable${NC}"
 else
-    echo -e "  ${YELLOW}⚠️  Deployment script not executable (run: chmod +x ...)${NC}"
+    echo -e "  ${YELLOW}Warning: Deployment script not executable (run: chmod +x ...)${NC}"
 fi
 
 # Validate Grafana dashboards
@@ -151,7 +151,7 @@ validate_files "Learning Materials" \
 
 # Summary
 echo ""
-echo "📊 Summary Statistics:"
+echo "Summary Statistics:"
 echo "========================"
 
 # Count files
@@ -163,22 +163,22 @@ echo -e "Total lines of code: ${GREEN}$total_lines${NC}"
 
 # List all created files
 echo ""
-echo "📝 All Infrastructure Files:"
+echo "All Infrastructure Files:"
 echo "============================"
 find infrastructure -type f \( -name "*.yml" -o -name "*.yaml" -o -name "*.tf" -o -name "*.service" -o -name "*.sh" -o -name "*.json" -o -name "*.txt" -o -name "*.md" \) | sort | while read -r file; do
     size=$(wc -l < "$file")
-    echo -e "  ${GREEN}✓${NC} $file (${size} lines)"
+    echo -e "  ${GREEN}[OK]${NC} $file (${size} lines)"
 done
 
 echo ""
-echo -e "${GREEN}✅ Validation complete!${NC}"
+echo -e "${GREEN}Validation complete!${NC}"
 echo ""
-echo "💡 Next Steps:"
+echo "Next Steps:"
 echo "  1. Review the HOW-TO-RUN-EVERYTHING.md for detailed testing"
 echo "  2. Try running individual validations with installed tools"
 echo "  3. Use these files as portfolio evidence in interviews"
 echo ""
-echo "🎯 For Squarepoint Interview:"
+echo "For Squarepoint Interview:"
 echo "  - Show these files in VS Code or GitHub"
 echo "  - Explain the architecture and design decisions"
 echo "  - Discuss cost optimization and security features"
